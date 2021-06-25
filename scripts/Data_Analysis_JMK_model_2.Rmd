@@ -1,0 +1,92 @@
+---
+title: "Effectuation Paper"
+output: html_notebook
+---
+
+Summary
+
+```{r}
+data_paper <- read_csv("Data/Networking como una herramienta del Modelo Efectual_3.csv")
+dim(data_paper)
+```
+
+We scale constrain metric
+
+```{r}
+data_paper$constraint_sc <- scale(data_paper$constraint)
+```
+
+```{r}
+EffecModel <- "Effectuation =~ ME_Q2 + ME_Q3 + ME_Q4
+               Networking =~ NET_Q1 + NET_Q2 + NET_Q4
+               WOM   =~ WOM_Q1 + WOM_Q2 + WOM_Q3
+               Net_Str =~ constraint_sc
+               Performance =~ DESEM_Q1 + DESEM_Q2 
+               Performance ~ Effectuation 
+               Performance ~ Net_Str
+               Performance ~ WOM
+               Effectuation ~ Networking
+               Net_Str ~ Networking
+               WOM ~ Networking"
+```
+
+Grados de libertad
+
+Degrees of Freedom (df)
+
+- Determined by the number of manifest variables and estimated values
+- df = Possible Values - Estimated Values
+- Possible Values = Manifest Variables * (Manifest Variables + 1) / 2
+
+
+
+degrees of freedom (parameters – available covariances and variances)
+
+Tenemos 12 variables observadas 
+
+available covariances and variances - (12 * (12+1)/2)= 78
+
+parameters:
+
+Lambdas: 2 + 2 + 2 + 0 + 1 = 7  (free loadings)
+
+Thetas (error variances) = 12
+
+Latent variables = 5
+
+Paths = 6
+
+Total = 7 + 12 + 5 + 6 = 30 # there is a mistake
+
+For more fit measures see http://davidakenny.net/cm/fit.htm
+
+Creating the fitted model
+
+```{r}
+Effec.fit <- lavaan::cfa(EffecModel, data=data_paper)
+```
+
+Inspecting the factor loading for each item
+
+```{r}
+inspect(Effec.fit, what = "std")$lambda
+```
+
+Visualing the results
+
+```{r}
+summary(Effec.fit, fit.measures=TRUE, standardized=T,rsquare=T)
+```
+
+```{r}
+fitMeasures(Effec.fit)
+```
+
+```{r}
+semTools::reliability(Effec.fit)
+```
+
+```{r}
+modificationindices(Effec.fit, sort. = TRUE)
+```
+
