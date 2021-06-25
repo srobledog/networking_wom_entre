@@ -1,0 +1,22 @@
+---
+title: "Data_Analysis_JRME"
+author: "Sebastian Robledo"
+date: "6/25/2021"
+output: html_document
+---
+
+# Creating the environment 
+
+```{r}
+library(lavaan)
+library(here)
+```
+
+# Getting data 
+
+```{r}
+data_jrme <- 
+  read.csv(here("data",
+                "Networking como una herramienta del Modelo Efectual.csv"))
+```
+
