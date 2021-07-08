@@ -10,6 +10,7 @@ output: html_document
 ```{r}
 library(lavaan)
 library(here)
+library(tidyverse)
 ```
 
 # Getting data 
@@ -17,6 +18,55 @@ library(here)
 ```{r}
 data_jrme <- 
   read.csv(here("data",
-                "Networking como una herramienta del Modelo Efectual.csv"))
+                "jrme_data_all.csv")) |> 
+  mutate(Net_Str = constraint_sc)
+```
+
+# Creating the model
+
+## Moderating effect
+
+Creating the interaction term between networking and effectuation
+
+```{r}
+data_jrme_modet <- 
+  data_jrme |> 
+  mutate(networking_x_effectuation = networking * modelo_efectual)
+```
+
+Parameters
+
+```{r}
+moderation_model <- "
+  # regressions
+  Net_Str ~ b1*networking
+  Net_Str ~ b2*modelo_efectual
+  Net_Str ~ b3*networking_x_effectuation
+  
+  modelo_efectual ~ modelo_efectual.mean*1
+  
+  modelo_efectual ~~ modelo_efectual.var*modelo_efectual
+  
+  SD.below := b1 + b3*(modelo_efectual.mean - sqrt(modelo_efectual))
+  mean := b1 + b3*(modelo_efectual)
+  SD.above := b1 + b3*(modelo_efectual.mean + sqrt(modelo_efectual))
+  "
+
+
+EffecModel_jrme <- "
+                    
+                    networking ~ modelo_efectual
+                    Net_Str ~ networking
+                    "
+```
+
+
+```{r}
+sem1 <- 
+  cfa(EffecModel_jrme, data = data_jrme_modet)
+```
+
+```{r}
+summary(sem1, fit.measures=TRUE, standardized=T,rsquare=T)
 ```
 

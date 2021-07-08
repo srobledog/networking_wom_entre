@@ -242,43 +242,56 @@ for (i in data_raw_5$email) {
                                             "RED_Q2_C3",
                                             "RED_Q2_C4",
                                             "RED_Q2_C5")]
-  df_entre = data.frame(Source = i,
-                        Target = c("Cliente 1",
-                                   "Cliente 2",
-                                   "Cliente 3",
-                                   "Cliente 4",
-                                   "Cliente 5"))
   
   df_c1 = data.frame(Source = "Cliente 1",
-                     Target = strsplit(x = row$RED_Q2_C1, split = ";"),
+                     Target = strsplit(x = row$RED_Q2_C1, 
+                                       split = ";"),
                      stringsAsFactors = FALSE)
+  
   names(df_c1) = c("Source", "Target")
   
   df_c2 = data.frame(Source = "Cliente 2",
-                     Target = strsplit(x = row$RED_Q2_C2, split = ";"),
+                     Target = strsplit(x = row$RED_Q2_C2, 
+                                       split = ";"),
                      stringsAsFactors = FALSE)
+  
   names(df_c2) = c("Source", "Target")
   
   df_c3 = data.frame(Source = "Cliente 3",
-                     Target = strsplit(x = row$RED_Q2_C3, split = ";"),
+                     Target = strsplit(x = row$RED_Q2_C3, 
+                                       split = ";"),
                      stringsAsFactors = FALSE)
+  
   names(df_c3) = c("Source", "Target")
   
   df_c4 = data.frame(Source = "Cliente 4",
-                     Target = strsplit(x = row$RED_Q2_C4, split = ";"),
+                     Target = strsplit(x = row$RED_Q2_C4, 
+                                       split = ";"),
                      stringsAsFactors = FALSE)
+  
   names(df_c4) = c("Source", "Target")
   
   df_c5 = data.frame(Source = "Cliente 5",
-                     Target = strsplit(x = row$RED_Q2_C5, split = ";"),
+                     Target = strsplit(x = row$RED_Q2_C5, 
+                                       split = ";"),
                      stringsAsFactors = FALSE)
+  
   names(df_c5) = c("Source", "Target")
   
-  edge_list = rbind(df_entre, df_c1, df_c2, df_c3, df_c4, df_c5)
+  edge_list = 
+    rbind(df_c1, df_c2, df_c3, df_c4, df_c5) |> 
+    na.omit()
   
-  edge_list = edge_list[complete.cases(edge_list) == TRUE,]
+  df_entre = 
+    data.frame(Source = i,
+               Target = edge_list$Source |> 
+                 unique()) |> 
+    bind_rows(edge_list)
   
-  graph_1 = graph.data.frame(edge_list, directed = FALSE)
+  graph_1 = 
+    graph.data.frame(df_entre, 
+                     directed = FALSE) |> 
+    simplify()
   
   net_metrics = data.frame(email = i,
                            constraint = constraint(graph_1)[1],
