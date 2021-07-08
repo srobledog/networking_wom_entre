@@ -188,7 +188,7 @@ Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2
 
 ```{r}
 data_raw_5 <- local({
-  .Z <- scale(data_raw_5[,c("ME_Q2", "ME_Q3", "ME_Q4")])
+  .Z <- scale(data_raw_5[,c("ME_Q1","ME_Q2", "ME_Q3", "ME_Q4")])
   within(data_raw_5, {
     ME_Q4 <- .Z[,3]
     ME_Q3 <- .Z[,2]
@@ -201,7 +201,7 @@ data_raw_5 <- local({
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_raw_5[,c("ME_Q2", "ME_Q3", "ME_Q4")], use ="complete.obs"))
+RcmdrMisc::reliability(cov(data_raw_5[,c("ME_Q1","ME_Q2", "ME_Q3", "ME_Q4")], use ="complete.obs"))
 ```
 
 Es encesario revisar esta variable ya que el cronbach alpha está cercano a 0.70
@@ -284,8 +284,11 @@ for (i in data_raw_5$email) {
   
   df_entre = 
     data.frame(Source = i,
-               Target = edge_list$Source |> 
-                 unique()) |> 
+               Target = c("Cliente 1",
+                          "Cliente 2",
+                          "Cliente 3",
+                          "Cliente 4",
+                          "Cliente 5")) |> 
     bind_rows(edge_list)
   
   graph_1 = 

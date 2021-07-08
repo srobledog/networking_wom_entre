@@ -11,6 +11,8 @@ output: html_document
 library(lavaan)
 library(here)
 library(tidyverse)
+library(semTools)
+library(stargazer)
 ```
 
 # Getting data 
@@ -22,7 +24,79 @@ data_jrme <-
   mutate(Net_Str = constraint_sc)
 ```
 
-# Creating the model
+# Try 2
+
+http://www.koreascience.or.kr/article/JAKO201919059190001.view
+
+```{r}
+data_jrme_mod <- 
+  semTools::indProd(data_jrme,
+                    var1 = c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4"),
+                    var2 = c("ME_Q1", "ME_Q2", "ME_Q3", "ME_Q4"),
+                    match = FALSE,
+                    meanC = TRUE,
+                    residualC = FALSE,
+                    doubleMC = TRUE)
+```
+
+New variables
+
+```{r}
+data_jrme_mod |> 
+  select(57:72) |> 
+  names()
+```
+
+Model 
+
+```{r}
+networking_model_mod <- 
+  "# measurement model
+   networking_jrme =~ NET_Q1 + NET_Q2 + NET_Q3 + NET_Q4
+   effectuation =~ ME_Q1 + ME_Q2 + ME_Q3 + ME_Q4
+   net_structure =~ constraint_sc
+   # interaction term
+   networkingeffectuation =~ NET_Q1.ME_Q1 + NET_Q1.ME_Q2 + NET_Q1.ME_Q3 + NET_Q1.ME_Q4 +
+                             NET_Q2.ME_Q1 + NET_Q2.ME_Q2 + NET_Q2.ME_Q3 + NET_Q2.ME_Q4 +
+                             NET_Q3.ME_Q1 + NET_Q3.ME_Q2 + NET_Q3.ME_Q3 + NET_Q3.ME_Q4 +
+                             NET_Q4.ME_Q1 + NET_Q4.ME_Q2 + NET_Q4.ME_Q3 + NET_Q4.ME_Q4
+   # regressions
+   net_structure ~ networking_jrme + effectuation + networkingeffectuation
+   # residual correlations"
+```
+
+Model fit 
+
+```{r}
+networking_fit_mod <- 
+  sem(model = networking_model_mod, 
+      data = data_jrme_mod)
+```
+
+
+```{r}
+summary(networking_fit_mod, standardized = TRUE)
+```
+
+
+```{r}
+parameterestimates(networking_fit_mod, standardized = TRUE)
+```
+```{r}
+parameterestimates(networking_fit_mod, standardized = TRUE) |> 
+  filter(op == "~") |> 
+  mutate(stars = ifelse(pvalue < 0.001, "***",
+                        ifelse(pvalue < 0.01, "**",
+                               ifelse(pvalue < 0.05, "*", "")))) |> 
+  select(LHS = lhs, RHS = rhs, Coefficient = est, 
+         Z = z, "p-value" = pvalue, Sig. = stars) |> 
+  stargazer(type = "text", title = "Regression Coefficients", 
+            summary = FALSE, digits = 3, 
+            digits.extra = 0, rownames = FALSE)
+```
+
+
+# Try 1
 
 ## Moderating effect
 
