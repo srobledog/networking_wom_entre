@@ -170,8 +170,6 @@ data_raw_5$edad <- as.integer(data_raw_5$edad)
 str(data_raw_5[,c("sector", "genero", "escolaridad", "edad")])
 ```
 
-
-
 ### Modelo Efectual: limpieza
 
 #### Validez de los constructos 
@@ -179,7 +177,7 @@ str(data_raw_5[,c("sector", "genero", "escolaridad", "edad")])
 Este procedimiento es igual para las variables categóricas que se pasan a enteras. 
 
 ```{r}
-cor(data_raw_5[,c("ME_Q1", "ME_Q2", "ME_Q3", "ME_Q4")], use = "complete")
+cor(data_cleaned_1[,c("ME_Q1", "ME_Q2", "ME_Q3", "ME_Q4")], use = "complete")
 ```
 
 La pregunta 1 tiene una correlación por debajo de 0.4 con las otras variables, por lo tanto se elimina del constructo. 
@@ -187,13 +185,12 @@ La pregunta 1 tiene una correlación por debajo de 0.4 con las otras variables, 
 Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final del Modelo efectual. 
 
 ```{r}
-data_raw_5 <- local({
-  .Z <- scale(data_raw_5[,c("ME_Q1","ME_Q2", "ME_Q3", "ME_Q4")])
-  within(data_raw_5, {
+data_cleaned_2 <- local({
+  .Z <- scale(data_cleaned_1[,c("ME_Q2", "ME_Q3", "ME_Q4")])
+  within(data_cleaned_1, {
     ME_Q4 <- .Z[,3]
     ME_Q3 <- .Z[,2]
     ME_Q2 <- .Z[,1]
-    
   })
 })
 ```
@@ -201,7 +198,7 @@ data_raw_5 <- local({
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_raw_5[,c("ME_Q1","ME_Q2", "ME_Q3", "ME_Q4")], use ="complete.obs"))
+RcmdrMisc::reliability(cov(data_cleaned_2[,c("ME_Q1","ME_Q2", "ME_Q3", "ME_Q4")], use ="complete.obs"))
 ```
 
 Es encesario revisar esta variable ya que el cronbach alpha está cercano a 0.70
@@ -212,15 +209,17 @@ Finalmente, creamos el valor para la variable del modelo efectual
 
 ```{r}
 
-data_raw_5$modelo_efectual <- apply(data_raw_5[,c("ME_Q2", "ME_Q3", "ME_Q4")], 1, mean)
-summary(data_raw_5$modelo_efectual)
+data_cleaned_2$modelo_efectual <- 
+  apply(data_cleaned_2[,c("ME_Q2", "ME_Q3", "ME_Q4")], 1, mean)
+
+summary(data_cleaned_2$modelo_efectual)
 
 ```
 
 Graficamos el histograma de la variable modelo efectual
 
 ```{r}
-hist(data_raw_5$modelo_efectual)
+hist(data_cleaned_2$modelo_efectual)
 ```
 
 ### Estructura de la red
@@ -362,15 +361,15 @@ Para construir este indicador se utilizaron 4 preguntas. Cada una con una escala
 Primero se halla las correlaciones entre los 4 items. De acuerdo a la tabla ninguno tiene altas correlaciones.
 
 ```{r}
-cor(data_raw_3[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use = "complete")
+cor(data_cleaned_2[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use = "complete")
 ```
 
 Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking. 
 
 ```{r}
-data_raw_5 <- local({
-  .Z <- scale(data_raw_5[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")])
-  within(data_raw_5, {
+data_cleaned_3 <- local({
+  .Z <- scale(data_cleaned_2[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")])
+  within(data_cleaned_2, {
     NET_Q4 <- .Z[,4]
     NET_Q3 <- .Z[,3]
     NET_Q2 <- .Z[,2]
@@ -382,22 +381,22 @@ data_raw_5 <- local({
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_raw_5[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use ="complete.obs"))
+RcmdrMisc::reliability(cov(data_cleaned_3[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use ="complete.obs"))
 ```
 
 Finalmente, creamos el valor para la variable networking
 
 ```{r}
 
-data_raw_5$networking <- apply(data_raw_5[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], 1, mean)
-summary(data_raw_5$networking)
+data_cleaned_3$networking <- apply(data_cleaned_3[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], 1, mean)
+summary(data_cleaned_3$networking)
 
 ```
 
 Graficamos el histograma de la variable networking
 
 ```{r}
-hist(data_raw_5$networking)
+hist(data_cleaned_3$networking)
 ```
 
 
@@ -406,15 +405,15 @@ hist(data_raw_5$networking)
 Hacemos el mismo proceso que en las anteriores. 
 
 ```{r}
-cor(data_raw_5[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], use = "complete")
+cor(data_cleaned_3[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], use = "complete")
 ```
 
 Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking. 
 
 ```{r}
-data_raw_5 <- local({
-  .Z <- scale(data_raw_5[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")])
-  within(data_raw_5, {
+data_cleaned_4 <- local({
+  .Z <- scale(data_cleaned_3[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")])
+  within(data_cleaned_3, {
     WOM_Q3 <- .Z[,3]
     WOM_Q2 <- .Z[,2]
     WOM_Q1 <- .Z[,1]
@@ -425,22 +424,22 @@ data_raw_5 <- local({
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_raw_5[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], use ="complete.obs"))
+RcmdrMisc::reliability(cov(data_cleaned_4[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], use ="complete.obs"))
 ```
 
 Finalmente, creamos el valor para la variable WOM
 
 ```{r}
 
-data_raw_5$WOM <- apply(data_raw_5[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], 1, mean)
-summary(data_raw_5$WOM)
+data_cleaned_4$WOM <- apply(data_cleaned_4[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], 1, mean)
+summary(data_cleaned_4$WOM)
 
 ```
 
 Graficamos el histograma de la variable WOM
 
 ```{r}
-hist(data_raw_5$WOM)
+hist(data_cleaned_4$WOM)
 ```
 
 
@@ -449,15 +448,15 @@ hist(data_raw_5$WOM)
 El mismo proceso que en los anteriores.
 
 ```{r}
-cor(data_raw_5[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], use = "complete")
+cor(data_cleaned_4[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], use = "complete")
 ```
 
 Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking. 
 
 ```{r}
-data_raw_5 <- local({
-  .Z <- scale(data_raw_5[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")])
-  within(data_raw_5, {
+data_cleaned_6 <- local({
+  .Z <- scale(data_cleaned_4[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")])
+  within(data_cleaned_4, {
     DESEM_Q4 <- .Z[,4]
     DESEM_Q3 <- .Z[,3]
     DESEM_Q2 <- .Z[,2]
@@ -469,22 +468,22 @@ data_raw_5 <- local({
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_raw_5[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], use ="complete.obs"))
+RcmdrMisc::reliability(cov(data_cleaned_6[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], use ="complete.obs"))
 ```
 
 Finalmente, creamos el valor para la variable desempeño
 
 ```{r}
 
-data_raw_5$desempeno <- apply(data_raw_5[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], 1, mean)
-summary(data_raw_5$desempeno)
+data_cleaned_6$desempeno <- apply(data_cleaned_6[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], 1, mean)
+summary(data_cleaned_6$desempeno)
 
 ```
 
 Graficamos el histograma de la variable networking
 
 ```{r}
-hist(data_raw_5$desempeno)
+hist(data_cleaned_6$desempeno)
 ```
 
 # Creación de datos finales para el análisis estadístico.
@@ -492,7 +491,7 @@ hist(data_raw_5$desempeno)
 Primero añadimos los valores de la estructura de la red en el data frame data_raw_3
 
 ```{r}
-data_raw_6 <- data_raw_5 %>% inner_join(df_egonet)
+data_tidied_1 <- data_cleaned_6 %>% inner_join(df_egonet)
 ```
 
 Eliminamos los items de las variables generales. 

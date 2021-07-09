@@ -30,7 +30,7 @@ http://www.koreascience.or.kr/article/JAKO201919059190001.view
 
 ```{r}
 data_jrme_mod <- 
-  semTools::indProd(data_jrme,
+  semTools::indProd(df_dummy,
                     var1 = c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4"),
                     var2 = c("ME_Q1", "ME_Q2", "ME_Q3", "ME_Q4"),
                     match = FALSE,
@@ -54,7 +54,7 @@ networking_model_mod <-
   "# measurement model
    networking_jrme =~ NET_Q1 + NET_Q2 + NET_Q3 + NET_Q4
    effectuation =~ ME_Q1 + ME_Q2 + ME_Q3 + ME_Q4
-   net_structure =~ constraint_sc
+   net_structure =~ constraint_raw
    # interaction term
    networkingeffectuation =~ NET_Q1.ME_Q1 + NET_Q1.ME_Q2 + NET_Q1.ME_Q3 + NET_Q1.ME_Q4 +
                              NET_Q2.ME_Q1 + NET_Q2.ME_Q2 + NET_Q2.ME_Q3 + NET_Q2.ME_Q4 +
