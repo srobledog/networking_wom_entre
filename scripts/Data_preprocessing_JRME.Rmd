@@ -26,7 +26,6 @@ source(here("scripts",
             "functions.R"))
 ```
 
-
 # Data Getting
 
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE}
@@ -43,7 +42,7 @@ dim(data_raw_1)
 
 # Data Cleaning
 
-Organizamos los nombres de las columnas por la variables que estamos midiendo y le añadimos QX. 
+Organizamos los nombres de las columnas por la variables que estamos midiendo y le añadimos QX.
 
 ```{r}
 nombres_columnas <- c("dia", 
@@ -69,7 +68,7 @@ names(data_raw_1) <- nombres_columnas
 data_raw_1$email <- tolower(data_raw_1$email)
 ```
 
-Se encontraron correos electrónicos repetidos con diferente información. Estos se dejan pero es necesario revisar qué fue lo que pasó. Esto es debido a que un emprendedor puede tener varias empresas. 
+Se encontraron correos electrónicos repetidos con diferente información. Estos se dejan pero es necesario revisar qué fue lo que pasó. Esto es debido a que un emprendedor puede tener varias empresas.
 
 ```{r}
 
@@ -82,7 +81,7 @@ duplicados <-
 duplicados[order(duplicados$email),]
 ```
 
-Sin embargo, de acuerdo a los datos de cámara y comercio leidy.aleja124@gmail.com solo tenía un registro y es una empresa que comercializa licores. Por lo tanto, se elimina la empresa del sector servicios que aparece a nombre de ella. 
+Sin embargo, de acuerdo a los datos de cámara y comercio [leidy.aleja124\@gmail.com](mailto:leidy.aleja124@gmail.com){.email} solo tenía un registro y es una empresa que comercializa licores. Por lo tanto, se elimina la empresa del sector servicios que aparece a nombre de ella.
 
 ```{r}
 data_raw_2 <- 
@@ -90,16 +89,14 @@ data_raw_2 <-
                  data_raw_1$sector == "Servicios"),] 
 ```
 
-
-Por otro lado, tatianavilla29@outlook.es si tiene dos empresas registradas a nombre de ella. Una es una peluquería a nombre de VILLA PINEDA MARIA LUZ MARY
-y la otra una distribuidora a nombre de GARCES VILLA PAOLA TATIANA. Se eliminan los datos porque es difícil saber de quién es cada negocio. Más adelante se podría llamar
+Por otro lado, [tatianavilla29\@outlook.es](mailto:tatianavilla29@outlook.es){.email} si tiene dos empresas registradas a nombre de ella. Una es una peluquería a nombre de VILLA PINEDA MARIA LUZ MARY y la otra una distribuidora a nombre de GARCES VILLA PAOLA TATIANA. Se eliminan los datos porque es difícil saber de quién es cada negocio. Más adelante se podría llamar
 
 ```{r}
 data_raw_3 <- 
   data_raw_2[!(data_raw_2$email == "tatianavilla29@outlook.es"),]
 ```
 
-En cuanto al otro duplicado:alejandroramirez@arquitecto.com, aparecen dos empresas una en el sector industrial y otra en comercio. Esta se puede organizar de acuerdo a las respuestas ya que es fácil identificar cual es cual en los registros. Se le añade un 1 a la empresa del sector comercio tanto en data_raw_1 como en los registros de cámara y comercio cyc_data.
+En cuanto al otro duplicado:[alejandroramirez\@arquitecto.com](mailto:alejandroramirez@arquitecto.com){.email}, aparecen dos empresas una en el sector industrial y otra en comercio. Esta se puede organizar de acuerdo a las respuestas ya que es fácil identificar cual es cual en los registros. Se le añade un 1 a la empresa del sector comercio tanto en data_raw_1 como en los registros de cámara y comercio cyc_data.
 
 ```{r}
 data_raw_3$email[data_raw_3$email == "alejandroramirez@arquitecto.com" & data_raw_3$sector == "Comercio"] <- "alejandroramirez@arquitecto.com_1"
@@ -111,9 +108,9 @@ Ahora lo cambiamos en los datos de cámara y comercio
 cyc_data$email[cyc_data$fecha_matricula == "20170113" & cyc_data$email == "alejandroramirez@arquitecto.com"] <- "alejandroramirez@arquitecto.com_1"
 ```
 
-Añadimos el tiempo de funcionamiento de los datos de cámara y comercio 
+Añadimos el tiempo de funcionamiento de los datos de cámara y comercio
 
-Hallamos el tiempo de funcionamiento. 
+Hallamos el tiempo de funcionamiento.
 
 ```{r}
 cyc_data$fecha_matricula <- ymd(cyc_data$fecha_matricula)
@@ -125,7 +122,7 @@ cyc_data <- cyc_data %>% select(email,years)
 
 ```
 
-Seleccionamos las empresas que respondieron la encuesta. 
+Seleccionamos las empresas que respondieron la encuesta.
 
 ```{r}
 
@@ -133,15 +130,15 @@ data_raw_4 <- data_raw_3 %>% inner_join(cyc_data)
 
 ```
 
-En esta parte desaparecieron 20 registros. Habían registros en la información de cámara y comercio que no habían en los datos registrados de la encuesta. Revisando un poco los datos se debe a respondieron con otro email diferente al que había en la base de datos. Por ejemplo: base de datos: galgisa@hotmail.com y encuesta: calgisa@gmail.com. Esto hay que revisarlo después. 
+En esta parte desaparecieron 20 registros. Habían registros en la información de cámara y comercio que no habían en los datos registrados de la encuesta. Revisando un poco los datos se debe a respondieron con otro email diferente al que había en la base de datos. Por ejemplo: base de datos: [galgisa\@hotmail.com](mailto:galgisa@hotmail.com){.email} y encuesta: [calgisa\@gmail.com](mailto:calgisa@gmail.com){.email}. Esto hay que revisarlo después.
 
-Revisamos la cantidad de NA's que hay por columna. Excluimos las variables de control ya que todas están completas en este momento. También excluimos las preguntas acerca de la egonetwork debido a que por su naturaleza debe haber NA's. 
+Revisamos la cantidad de NA's que hay por columna. Excluimos las variables de control ya que todas están completas en este momento. También excluimos las preguntas acerca de la egonetwork debido a que por su naturaleza debe haber NA's.
 
 ```{r}
 purrr::map(data_raw_4[,-c(1:5, 10:14)], ~sum(is.na(.)))
 ```
 
-La tabla siguiente muestra que existen NA's en NET_Q3, NET_Q4, DESEM_Q3 y DESEM_Q4. Por lo tanto, seleccionamos solo los registros completos. 
+La tabla siguiente muestra que existen NA's en NET_Q3, NET_Q4, DESEM_Q3 y DESEM_Q4. Por lo tanto, seleccionamos solo los registros completos.
 
 ```{r}
 
@@ -149,12 +146,11 @@ data_raw_5 <- data_raw_4[complete.cases(data_raw_4[,c("NET_Q3", "NET_Q4", "DESEM
 dim(data_raw_5)
 ```
 
-
 El resultado final es un dataset de 272 registros con 39 variables.
 
 ### Variables de control: Limpieza
 
-Se convierten las variables sector, genero y escolaridad en variables categóricas. 
+Se convierten las variables sector, genero y escolaridad en variables categóricas.
 
 ```{r}
 data_raw_5$sector <- factor(data_raw_5$sector)
@@ -170,61 +166,45 @@ data_raw_5$edad <- as.integer(data_raw_5$edad)
 str(data_raw_5[,c("sector", "genero", "escolaridad", "edad")])
 ```
 
-### Modelo Efectual: limpieza
+### 1. Modelo Efectual: limpieza
 
-#### Validez de los constructos 
+Validez de los constructos
 
-Este procedimiento es igual para las variables categóricas que se pasan a enteras. 
+Este procedimiento es igual para las variables categóricas que se pasan a enteras.
 
 ```{r}
 cor(data_cleaned_1[,c("ME_Q1", "ME_Q2", "ME_Q3", "ME_Q4")], use = "complete")
 ```
 
-La pregunta 1 tiene una correlación por debajo de 0.4 con las otras variables, por lo tanto se elimina del constructo. 
+La pregunta 1 tiene una correlación por debajo de 0.4 con las otras variables, por lo tanto se elimina del constructo.
 
-Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final del Modelo efectual. 
-
-```{r}
-data_cleaned_2 <- local({
-  .Z <- scale(data_cleaned_1[,c("ME_Q2", "ME_Q3", "ME_Q4")])
-  within(data_cleaned_1, {
-    ME_Q4 <- .Z[,3]
-    ME_Q3 <- .Z[,2]
-    ME_Q2 <- .Z[,1]
-  })
-})
-```
-
-Con los datos normalizados, hallamos el Cronbach Alpha
+Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final del Modelo efectual.
 
 ```{r}
-RcmdrMisc::reliability(cov(data_cleaned_2[,c("ME_Q1","ME_Q2", "ME_Q3", "ME_Q4")], use ="complete.obs"))
+data_cleaned_2 <- 
+  data_cleaned_1 |> 
+  mutate(ME_Q2_sc = scale(ME_Q2),
+         ME_Q3_sc = scale(ME_Q3),
+         ME_Q4_sc = scale(ME_Q4),
+         ME_Q2_tr = autoTransform(ME_Q2),
+         ME_Q3_tr = autoTransform(ME_Q3),
+         ME_Q4_tr = autoTransform(ME_Q4))
 ```
 
-Es encesario revisar esta variable ya que el cronbach alpha está cercano a 0.70
-
-Es necesario realizar más validaciónes para confirmar el constructo. 
-
-Finalmente, creamos el valor para la variable del modelo efectual
+Con los datos escalados, hallamos el Cronbach Alpha
 
 ```{r}
-
-data_cleaned_2$modelo_efectual <- 
-  apply(data_cleaned_2[,c("ME_Q2", "ME_Q3", "ME_Q4")], 1, mean)
-
-summary(data_cleaned_2$modelo_efectual)
-
+RcmdrMisc::reliability(cov(data_cleaned_2[,c("ME_Q2_tr", 
+                                             "ME_Q3_tr", 
+                                             "ME_Q4_tr")], 
+                           use ="complete.obs"))
 ```
 
-Graficamos el histograma de la variable modelo efectual
+El valor del cronbach alpha da mayor a 0.7
 
-```{r}
-hist(data_cleaned_2$modelo_efectual)
-```
+### 2. Estructura de la red
 
-### Estructura de la red
-
-Para la primera pregunta acerca de la ego-network, creamos las conexiones entre los clientes y hallamos los indicadores de constraint e intermediación. 
+Para la primera pregunta acerca de la ego-network, creamos las conexiones entre los clientes y hallamos los indicadores de constraint e intermediación.
 
 ```{r}
 
@@ -321,42 +301,9 @@ df_egonet$constraint_nor <- autoTransform(df_egonet$constraint)
 df_egonet$constraint_sc <- scale(df_egonet$constraint)
 ```
 
+### 3. Actividades de networking: limpieza y organización.
 
-```{r}
-hist(df_egonet$clustering)
-```
-
-Se transforman los datos para que se acerquen a una distribución normal
-
-```{r}
-df_egonet$clustering_nor <- autoTransform(df_egonet$clustering)
-df_egonet$clustering_sc <- scale(df_egonet$clustering)
-```
-
-
-```{r}
-hist(df_egonet$centrality)
-```
-
-```{r}
-df_egonet$centrality_nor <- autoTransform(df_egonet$centrality)
-df_egonet$centrality_sc <- scale(df_egonet$centrality)
-```
-
-```{r}
-df_egonet$density_nor <- autoTransform(df_egonet$density)
-df_egonet$density_sc <- scale(df_egonet$density)
-```
-
-
-
-### Fortaleza del enlace
-
-No estoy seguro la fuente de estas preguntas. Sería bueno revisar para determinar como construimos el indicador. 
-
-### Actividades de networking: limpieza y organización. 
-
-Para construir este indicador se utilizaron 4 preguntas. Cada una con una escala likert de 1 a 5. Donde 1 es muy bajo y 5 muy alto. 
+Para construir este indicador se utilizaron 4 preguntas. Cada una con una escala likert de 1 a 5. Donde 1 es muy bajo y 5 muy alto.
 
 Primero se halla las correlaciones entre los 4 items. De acuerdo a la tabla ninguno tiene altas correlaciones.
 
@@ -364,137 +311,44 @@ Primero se halla las correlaciones entre los 4 items. De acuerdo a la tabla ning
 cor(data_cleaned_2[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use = "complete")
 ```
 
-Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking. 
+Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking.
 
 ```{r}
-data_cleaned_3 <- local({
-  .Z <- scale(data_cleaned_2[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")])
-  within(data_cleaned_2, {
-    NET_Q4 <- .Z[,4]
-    NET_Q3 <- .Z[,3]
-    NET_Q2 <- .Z[,2]
-    NET_Q1 <- .Z[,1]
-  })
-})
+data_cleaned_3 <- 
+  data_cleaned_2 |> 
+  mutate(NET_Q1_sc = scale(NET_Q1),
+         NET_Q2_sc = scale(NET_Q2),
+         NET_Q3_sc = scale(NET_Q3),
+         NET_Q4_sc = scale(NET_Q4),
+         NET_Q1_tr = autoTransform(NET_Q1),
+         NET_Q2_tr = autoTransform(NET_Q2),
+         NET_Q3_tr = autoTransform(NET_Q3),
+         NET_Q4_tr = autoTransform(NET_Q4))
 ```
 
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_cleaned_3[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use ="complete.obs"))
+RcmdrMisc::reliability(cov(data_cleaned_3[,c("NET_Q1_tr", 
+                                             "NET_Q2_tr", 
+                                             "NET_Q3_tr", 
+                                             "NET_Q4_tr")], 
+                           use ="complete.obs"))
 ```
 
-Finalmente, creamos el valor para la variable networking
-
-```{r}
-
-data_cleaned_3$networking <- apply(data_cleaned_3[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], 1, mean)
-summary(data_cleaned_3$networking)
-
-```
-
-Graficamos el histograma de la variable networking
-
-```{r}
-hist(data_cleaned_3$networking)
-```
-
-
-### WOM
-
-Hacemos el mismo proceso que en las anteriores. 
-
-```{r}
-cor(data_cleaned_3[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], use = "complete")
-```
-
-Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking. 
-
-```{r}
-data_cleaned_4 <- local({
-  .Z <- scale(data_cleaned_3[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")])
-  within(data_cleaned_3, {
-    WOM_Q3 <- .Z[,3]
-    WOM_Q2 <- .Z[,2]
-    WOM_Q1 <- .Z[,1]
-  })
-})
-```
-
-Con los datos normalizados, hallamos el Cronbach Alpha
-
-```{r}
-RcmdrMisc::reliability(cov(data_cleaned_4[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], use ="complete.obs"))
-```
-
-Finalmente, creamos el valor para la variable WOM
-
-```{r}
-
-data_cleaned_4$WOM <- apply(data_cleaned_4[,c("WOM_Q1", "WOM_Q2", "WOM_Q3")], 1, mean)
-summary(data_cleaned_4$WOM)
-
-```
-
-Graficamos el histograma de la variable WOM
-
-```{r}
-hist(data_cleaned_4$WOM)
-```
-
-
-### Desempeño
-
-El mismo proceso que en los anteriores.
-
-```{r}
-cor(data_cleaned_4[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], use = "complete")
-```
-
-Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking. 
-
-```{r}
-data_cleaned_6 <- local({
-  .Z <- scale(data_cleaned_4[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")])
-  within(data_cleaned_4, {
-    DESEM_Q4 <- .Z[,4]
-    DESEM_Q3 <- .Z[,3]
-    DESEM_Q2 <- .Z[,2]
-    DESEM_Q1 <- .Z[,1]
-  })
-})
-```
-
-Con los datos normalizados, hallamos el Cronbach Alpha
-
-```{r}
-RcmdrMisc::reliability(cov(data_cleaned_6[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], use ="complete.obs"))
-```
-
-Finalmente, creamos el valor para la variable desempeño
-
-```{r}
-
-data_cleaned_6$desempeno <- apply(data_cleaned_6[,c("DESEM_Q1", "DESEM_Q2", "DESEM_Q3", "DESEM_Q4")], 1, mean)
-summary(data_cleaned_6$desempeno)
-
-```
-
-Graficamos el histograma de la variable networking
-
-```{r}
-hist(data_cleaned_6$desempeno)
-```
+Cronbach Alpha is above 0.7.
 
 # Creación de datos finales para el análisis estadístico.
 
 Primero añadimos los valores de la estructura de la red en el data frame data_raw_3
 
 ```{r}
-data_tidied_1 <- data_cleaned_6 %>% inner_join(df_egonet)
+data_tidied_1 <- 
+  data_cleaned_3 |>  
+  inner_join(df_egonet)
 ```
 
-Eliminamos los items de las variables generales. 
+Eliminamos los items de las variables generales.
 
 ```{r}
 data_raw_7 <- 
