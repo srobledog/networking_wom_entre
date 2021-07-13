@@ -17,6 +17,10 @@ library(psych)
 library(GPArotation)
 library(semPlot)
 library(MVN)
+library(corrr)
+library(performance)
+library(tidymodels)
+library(moderndive)
 ```
 
 # Getting data 
@@ -27,6 +31,124 @@ data_jrme <-
                 "jrme_data_all.csv")) |> 
   mutate(Net_Str = constraint_sc)
 ```
+
+# Try 4
+
+```{r}
+data_jrme_mod_4 <- 
+  semTools::indProd(data_tidied_1,
+                    var1 = c("NET_Q1_tr", "NET_Q2_tr", "NET_Q3_tr", "NET_Q4_tr"),
+                    var2 = c("ME_Q1_tr","ME_Q2_tr", "ME_Q3_tr", "ME_Q4_tr"),
+                    match = FALSE,
+                    meanC = TRUE,
+                    residualC = FALSE,
+                    doubleMC = TRUE)
+```
+
+```{r}
+data_jrme_mod_4 |>
+  select(60:75) |> 
+  names()
+```
+
+
+Model
+
+```{r}
+networking_model_mod_4 <- 
+  "# measurement model
+   networking_jrme =~ NET_Q1_tr + NET_Q2_tr + NET_Q3_tr + NET_Q4_tr
+   effectuation <~ ME_Q1_tr + ME_Q2_tr + ME_Q3_tr + ME_Q4_tr
+   net_structure =~ constraint
+   # interaction term
+   networkingeffectuation =~  NET_Q1_tr.ME_Q1_tr + NET_Q1_tr.ME_Q2_tr + NET_Q1_tr.ME_Q3_tr + NET_Q1_tr.ME_Q4_tr +
+                              NET_Q2_tr.ME_Q1_tr + NET_Q2_tr.ME_Q2_tr + NET_Q2_tr.ME_Q3_tr + NET_Q2_tr.ME_Q4_tr +
+                              NET_Q3_tr.ME_Q1_tr + NET_Q3_tr.ME_Q2_tr + NET_Q3_tr.ME_Q3_tr + NET_Q3_tr.ME_Q4_tr +
+                              NET_Q4_tr.ME_Q1_tr + NET_Q4_tr.ME_Q2_tr + NET_Q4_tr.ME_Q3_tr + NET_Q4_tr.ME_Q4_tr
+   # regressions
+   net_structure ~ networking_jrme + networkingeffectuation
+   # residual correlations"
+```
+
+
+Model fit 
+
+```{r}
+networking_fit_mod_4 <- 
+  sem(model = networking_model_mod_4, 
+      data = data_jrme_mod_4)
+```
+
+Table 
+
+```{r}
+parameterestimates(networking_fit_mod_4,
+                   standardized = TRUE) |> 
+  filter(op == "~") |> 
+  mutate(stars = ifelse(pvalue < 0.001, "***",
+                        ifelse(pvalue < 0.01, "**",
+                               ifelse(pvalue < 0.05, "*", "")))) |> 
+  select(LHS = lhs, RHS = rhs, Coefficient = est, 
+         Z = z, "p-value" = pvalue, Sig. = stars) |> 
+  stargazer(type = "text", title = "Regression Coefficients", 
+            summary = FALSE, digits = 3, 
+            digits.extra = 0, rownames = FALSE)
+```
+
+The model's outputs are poor. We need to improve the relationship between networking and net_structure. I want to see the correlations. 
+
+```{r}
+data_tidied_1 |> 
+  rowwise() |> 
+  mutate(networking_mean_raw = mean(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4))) |> 
+  select(networking_mean, networking_mean_raw, constraint, density, clustering) 
+```
+
+What if we remove items?. For example, items with 0 standard deviation?
+
+```{r}
+data_tidied_2 <- 
+  data_tidied_1 |> 
+  rowwise() |> 
+  mutate(networking_sd = sd(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4)),
+         effectuation_sd = sd(c(ME_Q1, ME_Q2, ME_Q3, ME_Q4))) |> 
+  filter(networking_sd == 0) |> 
+  filter(effectuation_sd == 0)
+```
+
+```{r}
+data_tidied_2 |> 
+  rowwise() |> 
+  mutate(networking_mean_raw = mean(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4))) |> 
+  select(networking_mean, networking_mean_raw, constraint, density, clustering) |> 
+  correlate()
+```
+
+Checking the regression model 
+
+```{r}
+df_1 <- 
+  data_tidied_1 |> 
+  rowwise() |> 
+  mutate(networking_mean_raw = mean(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4))) |>
+  select(networking_mean, constraint)
+
+model_1 <- 
+  linear_reg() |> 
+  set_engine("lm") |> 
+  fit(constraint ~ networking_mean, df_1)
+
+model_2 <- lm(constraint ~ networking_mean, df_1)
+
+get_regression_table(model_2)
+```
+Checking the model
+
+```{r}
+performance::check_model(model_2)
+```
+
+
 
 # Try 3
 
@@ -42,7 +164,7 @@ data_jrme_mod_3 <-
 ```
 
 Model 
- 
+
 ```{r}
 networking_model_mod_3 <- 
   "# measurement model

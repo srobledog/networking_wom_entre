@@ -166,6 +166,11 @@ data_raw_5$edad <- as.integer(data_raw_5$edad)
 str(data_raw_5[,c("sector", "genero", "escolaridad", "edad")])
 ```
 
+```{r}
+data_cleaned_1 <- data_raw_5
+```
+
+
 ### 1. Modelo Efectual: limpieza
 
 Validez de los constructos
@@ -178,29 +183,39 @@ cor(data_cleaned_1[,c("ME_Q1", "ME_Q2", "ME_Q3", "ME_Q4")], use = "complete")
 
 La pregunta 1 tiene una correlación por debajo de 0.4 con las otras variables, por lo tanto se elimina del constructo.
 
-Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final del Modelo efectual.
+Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final del Modelo efectual y networking.
 
 ```{r}
 data_cleaned_2 <- 
   data_cleaned_1 |> 
-  mutate(ME_Q2_sc = scale(ME_Q2),
+  mutate(ME_Q1_sc = scale(ME_Q1),
+         ME_Q2_sc = scale(ME_Q2),
          ME_Q3_sc = scale(ME_Q3),
          ME_Q4_sc = scale(ME_Q4),
+         ME_Q1_tr = autoTransform(ME_Q1),
          ME_Q2_tr = autoTransform(ME_Q2),
          ME_Q3_tr = autoTransform(ME_Q3),
-         ME_Q4_tr = autoTransform(ME_Q4))
+         ME_Q4_tr = autoTransform(ME_Q4),
+         NET_Q1_sc = scale(NET_Q1),
+         NET_Q2_sc = scale(NET_Q2),
+         NET_Q3_sc = scale(NET_Q3),
+         NET_Q4_sc = scale(NET_Q4),
+         NET_Q1_tr = autoTransform(NET_Q1),
+         NET_Q2_tr = autoTransform(NET_Q2),
+         NET_Q3_tr = autoTransform(NET_Q3),
+         NET_Q4_tr = autoTransform(NET_Q4)) |> 
+  rowwise() |> 
+  mutate(effectuation_mean = mean(c(ME_Q1_tr, 
+                                    ME_Q2_tr, 
+                                    ME_Q3_tr, 
+                                    ME_Q4_tr)),
+         networking_mean = mean(c(NET_Q1_tr, 
+                                  NET_Q2_tr, 
+                                  NET_Q3_tr, 
+                                  NET_Q4_tr))) 
 ```
 
-Con los datos escalados, hallamos el Cronbach Alpha
-
-```{r}
-RcmdrMisc::reliability(cov(data_cleaned_2[,c("ME_Q2_tr", 
-                                             "ME_Q3_tr", 
-                                             "ME_Q4_tr")], 
-                           use ="complete.obs"))
-```
-
-El valor del cronbach alpha da mayor a 0.7
+Como el pensamiento effectual es una variable formativa, no es necesario que se halle el Cronbach Alpha. 
 
 ### 2. Estructura de la red
 
@@ -308,28 +323,15 @@ Para construir este indicador se utilizaron 4 preguntas. Cada una con una escala
 Primero se halla las correlaciones entre los 4 items. De acuerdo a la tabla ninguno tiene altas correlaciones.
 
 ```{r}
-cor(data_cleaned_2[,c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4")], use = "complete")
+cor(data_cleaned_2[,c("NET_Q1_tr", "NET_Q2_tr", "NET_Q3_tr", "NET_Q4_tr")], 
+    use = "complete")
 ```
 
-Ahora se procede a realizar la normalización de los items (Levin and Cross (MS2001)) y crear la variable final de networking.
-
-```{r}
-data_cleaned_3 <- 
-  data_cleaned_2 |> 
-  mutate(NET_Q1_sc = scale(NET_Q1),
-         NET_Q2_sc = scale(NET_Q2),
-         NET_Q3_sc = scale(NET_Q3),
-         NET_Q4_sc = scale(NET_Q4),
-         NET_Q1_tr = autoTransform(NET_Q1),
-         NET_Q2_tr = autoTransform(NET_Q2),
-         NET_Q3_tr = autoTransform(NET_Q3),
-         NET_Q4_tr = autoTransform(NET_Q4))
-```
 
 Con los datos normalizados, hallamos el Cronbach Alpha
 
 ```{r}
-RcmdrMisc::reliability(cov(data_cleaned_3[,c("NET_Q1_tr", 
+RcmdrMisc::reliability(cov(data_cleaned_2[,c("NET_Q1_tr", 
                                              "NET_Q2_tr", 
                                              "NET_Q3_tr", 
                                              "NET_Q4_tr")], 
@@ -344,58 +346,6 @@ Primero añadimos los valores de la estructura de la red en el data frame data_r
 
 ```{r}
 data_tidied_1 <- 
-  data_cleaned_3 |>  
+  data_cleaned_2 |>  
   inner_join(df_egonet)
-```
-
-Eliminamos los items de las variables generales.
-
-```{r}
-data_raw_7 <- 
-  data_raw_6 %>% 
-  select(email, sector, genero, edad, escolaridad, years, 
-         modelo_efectual, 
-         constraint, 
-         clustering,
-         networking,
-         centrality,
-         WOM)
-```
-
-## Eliminamos los outliers
-
-Se revisa la distribución de cada una de las variables
-
-```{r}
-d <- melt(data_raw_7 %>% 
-            select(modelo_efectual,
-                   constraint,
-                   clustering,
-                   networking,
-                   WOM))
-ggplot(d,aes(x = value)) + 
-  facet_wrap(~variable,scales = "free_x") + 
-  geom_histogram()
-
-```
-
-Removemos outliers
-
-```{r}
-outlierKD(data_raw_7, modelo_efectual)
-outlierKD(data_raw_7, constraint)
-# outlierKD(data_raw_5, clustering)(da)
-# outlierKD(data_raw_5, centrality)
-outlierKD(data_raw_7, networking)
-outlierKD(data_raw_7, WOM)
-# outlierKD(data_raw_5, personalidad_emprendedora_dominancia)
-# outlierKD(data_raw_5, desempeno)
-```
-
-Eliminamos los outliers
-
-```{r}
-data_raw_8 <- 
-  data_raw_7 %>%
-  na.omit()
 ```
