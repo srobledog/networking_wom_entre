@@ -21,6 +21,7 @@ library(corrr)
 library(performance)
 library(tidymodels)
 library(moderndive)
+library(anomalize)
 ```
 
 # Getting data 
@@ -147,8 +148,102 @@ Checking the model
 ```{r}
 performance::check_model(model_2)
 ```
+```{r}
+df_1 |> 
+  mutate(ET_Q1_sc_tr = autoTransform(NET_Q1),
+         NET_Q2_sc_tr = autoTransform(NET_Q2),
+         NET_Q3_sc_tr = autoTransform(NET_Q3),
+         NET_Q4_sc_tr = autoTransform(NET_Q4)) |> 
+  select(networking_mean, constraint) |>
+  pivot_longer(cols = c(networking_mean, 
+                        constraint), 
+               names_to = "variable", 
+               values_to =  "value") |> 
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot() +
+  facet_wrap(~ variable)
+
+```
+
+```{r}
+data_tidied_1_csv <- read_csv(here("data", "jrme_data_all_1.csv"))
 
 
+data_tidied_1_csv |> 
+  mutate(NET_Q1_tr_sc = scale(NET_Q1_tr),
+         NET_Q2_tr_sc = scale(NET_Q2_tr),
+         NET_Q3_tr_sc = scale(NET_Q3_tr),
+         NET_Q4_tr_sc = scale(NET_Q4_tr)) |> 
+  rowwise() |> 
+  mutate(networking_mean_tr_sc = mean(c(NET_Q1_tr_sc, 
+                                        NET_Q2_tr_sc, 
+                                        NET_Q3_tr_sc, 
+                                        NET_Q4_tr_sc))) |>
+  select(networking_mean_tr_sc, constraint) |> 
+  pivot_longer(cols = c(networking_mean_tr_sc, 
+                        constraint), 
+               names_to = "variable", 
+               values_to =  "value") |> 
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot() +
+  facet_wrap(~ variable)
+```
+
+```{r}
+data_tidied_1_csv |> 
+  mutate(NET_Q1_tr_sc = scale(NET_Q1_tr),
+         NET_Q2_tr_sc = scale(NET_Q2_tr),
+         NET_Q3_tr_sc = scale(NET_Q3_tr),
+         NET_Q4_tr_sc = scale(NET_Q4_tr)) |> 
+  rowwise() |> 
+  mutate(networking_mean_tr_sc = mean(c(NET_Q1_tr_sc, 
+                                        NET_Q2_tr_sc, 
+                                        NET_Q3_tr_sc, 
+                                        NET_Q4_tr_sc))) |>
+  select(networking_mean_tr_sc, constraint) |> 
+  ggplot(aes(x = networking_mean_tr_sc, y = constraint)) +
+  geom_point() +
+  geom_smooth()
+```
+remove outliers....in networking 
+
+```{r}
+data_tidied_2 <- 
+  data_tidied_1_csv |> 
+  mutate(NET_Q1_tr_sc = scale(NET_Q1_tr),
+         NET_Q2_tr_sc = scale(NET_Q2_tr),
+         NET_Q3_tr_sc = scale(NET_Q3_tr),
+         NET_Q4_tr_sc = scale(NET_Q4_tr)) |> 
+  rowwise() |> 
+  mutate(networking_mean_tr_sc = mean(c(NET_Q1_tr_sc, 
+                                        NET_Q2_tr_sc, 
+                                        NET_Q3_tr_sc, 
+                                        NET_Q4_tr_sc))) 
+  
+data_tidied_2 |> 
+  anomalize(NET_Q1, method = "gesd") |> # just 4 and the rest no-one. 
+  filter(anomaly == "No") |> 
+  select(-NET_Q1_l1,NET_Q1_l2, -anomaly) |> 
+  anomalize(NET_Q4, method = "gesd") |> 
+  filter(anomaly == "No") |> 
+  select(NET_Q4, anomaly) 
+```
+
+Remove extreme values 
+
+http://qsel.columbia.edu/formhub.R/demo/RemoveOutliers.html
+
+```{r}
+data_tidied_2 |> 
+  ggplot(aes(x = networking_mean_tr_sc)) +
+  geom_histogram()
+```
+```{r}
+data_tidied_2 |> 
+  ggplot(aes(x = constraint)) +
+  geom_histogram()
+```
+Scale and transform constraint????
 
 # Try 3
 
