@@ -35,3 +35,22 @@ autoTransform <- function(x) {
   library(forecast)
   return(scale(BoxCox(x, BoxCox.lambda(x))))
 }
+
+center_colmeans <- function(x) {
+  xcenter = colMeans(x)
+  x - rep(xcenter, rep.int(nrow(x), ncol(x)))
+}
+
+
+# Autoscale
+center_colstd.dev <- function(x) {
+  xcenter = colStdevs(x)
+  x / rep(xcenter, rep.int(nrow(x), ncol(x)))
+}
+
+
+# Pareto
+center_colpareto <- function(x) {
+  xcenter = sqrt(colStdevs(x)) 
+  x / rep(xcenter, rep.int(nrow(x), ncol(x)))
+}

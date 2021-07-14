@@ -22,6 +22,8 @@ library(performance)
 library(tidymodels)
 library(moderndive)
 library(anomalize)
+library(timeSeries)
+source(here("scripts", "functions.R"))
 ```
 
 # Getting data 
@@ -32,6 +34,49 @@ data_jrme <-
                 "jrme_data_all.csv")) |> 
   mutate(Net_Str = constraint_sc)
 ```
+
+# Try 5
+
+```{r}
+data_vivi <- 
+  read.csv(here("data", "jrme_data_all_1.csv")) |> 
+  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, constraint)
+```
+
+
+Data transformation
+
+```{r}
+data_vivi_tr <- 
+  data_vivi |> 
+  rowwise() |> 
+  mutate(networking_sum = sum(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4)),
+         NET_Q1_tr = NET_Q1/networking_sum*10, 
+         NET_Q2_tr = NET_Q2/networking_sum*10, 
+         NET_Q3_tr = NET_Q3/networking_sum*10,
+         NET_Q4_tr = NET_Q4/networking_sum*10) |> 
+  mutate(NET_Q1_log = log10(NET_Q1_tr), 
+         NET_Q2_log = log10(NET_Q2_tr), 
+         NET_Q3_log = log10(NET_Q3_tr),
+         NET_Q4_log = log10(NET_Q4_tr))
+
+data_vivi_center <- 
+  center_colmeans(data_vivi_tr |> 
+                    select(NET_Q1_log, 
+                           NET_Q2_log, 
+                           NET_Q3_log , 
+                           NET_Q4_log)) 
+
+data_vivi_autscale <- 
+  center_colstd.dev(data_vivi_center)
+
+  mutate(NET_Q1_log = center_colmeans(c(NET_Q1_tr, NET_Q2_tr))), 
+         NET_Q2_log = center_colmeans(NET_Q2_tr), 
+         NET_Q3_log = center_colmeans(NET_Q3_tr),
+         NET_Q4_log = center_colmeans(NET_Q4_tr))
+  
+```
+
 
 # Try 4
 
