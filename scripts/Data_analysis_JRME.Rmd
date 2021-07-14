@@ -23,6 +23,8 @@ library(tidymodels)
 library(moderndive)
 library(anomalize)
 library(timeSeries)
+library(bestNormalize)
+library(gridExtra)
 source(here("scripts", "functions.R"))
 ```
 
@@ -40,11 +42,13 @@ data_jrme <-
 ```{r}
 data_vivi <- 
   read.csv(here("data", "jrme_data_all_1.csv")) |> 
-  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, constraint)
+  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, ME_Q1, ME_Q2, ME_Q3, ME_Q4, constraint)
 ```
 
 
 Data transformation
+
+Networking 
 
 ```{r}
 data_vivi_tr <- 
@@ -58,23 +62,216 @@ data_vivi_tr <-
   mutate(NET_Q1_log = log10(NET_Q1_tr), 
          NET_Q2_log = log10(NET_Q2_tr), 
          NET_Q3_log = log10(NET_Q3_tr),
-         NET_Q4_log = log10(NET_Q4_tr))
-
-data_vivi_center <- 
+         NET_Q4_log = log10(NET_Q4_tr)) |> 
+  mutate(effectuation_sum = sum(c(ME_Q1, ME_Q2, ME_Q3, ME_Q4)),
+         ME_Q1_tr = ME_Q1/effectuation_sum*10, 
+         ME_Q2_tr = ME_Q2/effectuation_sum*10, 
+         ME_Q3_tr = ME_Q3/effectuation_sum*10,
+         ME_Q4_tr = ME_Q4/effectuation_sum*10) |> 
+  mutate(ME_Q1_log = log10(ME_Q1_tr), 
+         ME_Q2_log = log10(ME_Q2_tr), 
+         ME_Q3_log = log10(ME_Q3_tr),
+         ME_Q4_log = log10(ME_Q4_tr)) 
+  
+data_vivi_center_networking <- 
   center_colmeans(data_vivi_tr |> 
                     select(NET_Q1_log, 
                            NET_Q2_log, 
                            NET_Q3_log , 
                            NET_Q4_log)) 
 
-data_vivi_autscale <- 
-  center_colstd.dev(data_vivi_center)
+data_vivi_autscale_networking <- 
+  center_colstd.dev(data_vivi_center_networking)
 
-  mutate(NET_Q1_log = center_colmeans(c(NET_Q1_tr, NET_Q2_tr))), 
-         NET_Q2_log = center_colmeans(NET_Q2_tr), 
-         NET_Q3_log = center_colmeans(NET_Q3_tr),
-         NET_Q4_log = center_colmeans(NET_Q4_tr))
-  
+data_vivi_center_effectuation <- 
+  center_colmeans(data_vivi_tr |> 
+                    select(ME_Q1_log, 
+                           ME_Q2_log, 
+                           ME_Q3_log , 
+                           ME_Q4_log)) 
+
+data_vivi_autscale_effectuation <- 
+  center_colstd.dev(data_vivi_center_effectuation)
+
+data_vivi_autscale_total <- 
+  data_vivi_autscale_networking |> 
+  bind_cols(data_vivi_center_effectuation, 
+            data_vivi |> 
+              select(constraint))
+
+constraint_t <- 
+  bestNormalize(data_vivi_autscale_total$constraint)$x.t |> 
+  tibble() |> 
+  rename("constraint_t" = 1) 
+
+data_vivi_final <- 
+  data_vivi_autscale_total |> 
+  bind_cols(constraint_t)
+
+```
+
+
+```{r}
+data_jrme_mod_5 <- 
+  semTools::indProd(data_vivi_final,
+                    var1 = c("NET_Q1_log", "NET_Q2_log", "NET_Q3_log", "NET_Q4_log"),
+                    var2 = c("ME_Q1_log","ME_Q2_log", "ME_Q3_log", "ME_Q4_log"),
+                    match = FALSE,
+                    meanC = TRUE,
+                    residualC = FALSE,
+                    doubleMC = TRUE)
+```
+
+Model
+
+```{r}
+networking_model_mod_5 <- 
+  "# measurement model
+   networking_jrme =~ NET_Q1_log + NET_Q2_log + NET_Q3_log + NET_Q4_log
+   effectuation <~ ME_Q1_log + ME_Q2_log + ME_Q3_log + ME_Q4_log
+   net_structure =~ constraint
+   # interaction term
+   networkingeffectuation =~  NET_Q1_log.ME_Q1_log + NET_Q1_log.ME_Q2_log + NET_Q1_log.ME_Q3_log + NET_Q1_log.ME_Q4_log +
+                              NET_Q2_log.ME_Q1_log + NET_Q2_log.ME_Q2_log + NET_Q2_log.ME_Q3_log + NET_Q2_log.ME_Q4_log +
+                              NET_Q3_log.ME_Q1_log + NET_Q3_log.ME_Q2_log + NET_Q3_log.ME_Q3_log + NET_Q3_log.ME_Q4_log +
+                              NET_Q4_log.ME_Q1_log + NET_Q4_log.ME_Q2_log + NET_Q4_log.ME_Q3_log + NET_Q4_log.ME_Q4_log
+   # regressions
+   net_structure ~ networking_jrme + networkingeffectuation
+   # residual correlations"
+```
+
+Model fit 
+
+```{r}
+networking_fit_mod_5 <- 
+  sem(model = networking_model_mod_5, 
+      data = data_jrme_mod_5)
+```
+
+Table 
+
+```{r}
+parameterestimates(networking_fit_mod_5,
+                   standardized = TRUE) |> 
+  filter(op == "~") |> 
+  mutate(stars = ifelse(pvalue < 0.001, "***",
+                        ifelse(pvalue < 0.01, "**",
+                               ifelse(pvalue < 0.05, "*", "")))) |> 
+  select(LHS = lhs, RHS = rhs, Coefficient = est, 
+         Z = z, "p-value" = pvalue, Sig. = stars) |> 
+  stargazer(type = "text", title = "Regression Coefficients", 
+            summary = FALSE, digits = 3, 
+            digits.extra = 0, rownames = FALSE)
+```
+
+Checking distributions out
+
+```{r}
+data_jrme_mod_5 |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
+  ggplot(aes(x = networking)) +
+    geom_histogram() 
+```
+Detecting anomalies
+
+```{r}
+data_jrme_mod_5_1 <- 
+  data_jrme_mod_5 |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-anomaly) |> 
+  anomalize(constraint_t, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes")
+```
+
+
+```{r}
+networking_hist <- 
+  data_jrme_mod_5_1 |> 
+  ggplot(aes(x = networking)) +
+  geom_histogram(binwidth = 0.5)
+
+constraint_hist <- 
+  data_jrme_mod_5_1 |> 
+  ggplot(aes(x = constraint_t)) +
+  geom_histogram(binwidth = 0.5)
+
+grid.arrange(networking_hist, constraint_hist)
+```
+
+
+```{r}
+data_jrme_mod_5_1 |>
+  select(networking, constraint_t) |> 
+  correlate()
+
+```
+
+```{r}
+summary(lm(constraint_t ~ networking, data = data_jrme_mod_5_1))
+```
+
+Next option is PLS-SEM and change constraint metric. 
+
+```{r}
+data_jrme_mod_5 |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  ggplot(aes(x = networking, y = constraint)) +
+  geom_point() +
+  geom_smooth()
+```
+```{r}
+constraint_hist_1 <- 
+  data_jrme_mod_5 |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  mutate(constraint_tr = 1/(constraint)) |> 
+  ggplot(aes(x = constraint_st)) +
+  geom_histogram()
+
+constraint_hist_1
+```
+
+Normalization, standardization, and transformation
+
+https://www.r-bloggers.com/2020/01/a-guide-to-data-transformation/
+
+
+```{r}
+data_jrme_mod_5_1 <- 
+  data_jrme_mod_5 |> 
+  bind_cols(df_egonet |> 
+              select(constraint_nor)) |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes")
+```
+
+
+```{r}
+data_jrme_mod_5_1 |> 
+  select(networking, constraint_nor, constraint, constra) |> 
+  correlate()
+```
+
+
+
+
+But what I want to see, it's the relationship between networking and constraint
+
+```{r}
+data_jrme_mod_5 |> 
+  rowwise |> 
+  mutate()
 ```
 
 
