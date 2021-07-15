@@ -25,6 +25,9 @@ library(anomalize)
 library(timeSeries)
 library(bestNormalize)
 library(gridExtra)
+library(psych)
+library(semPLS)
+library(gt)
 source(here("scripts", "functions.R"))
 ```
 
@@ -37,12 +40,191 @@ data_jrme <-
   mutate(Net_Str = constraint_sc)
 ```
 
+# Try 6 
+
+data
+
+```{r}
+data_vivi <- 
+  read.csv(here("data", "jrme_data_all_1.csv")) |> 
+  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, ME_Q1, ME_Q2, ME_Q3, ME_Q4, 
+         constraint, clustering, density)
+```
+
+
+```{r}
+data_vivi_tr_6 <- 
+  data_vivi |> 
+  rowwise() |> 
+  mutate(networking_sum = sum(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4)),
+         NET_Q1_tr = NET_Q1/networking_sum*10, 
+         NET_Q2_tr = NET_Q2/networking_sum*10, 
+         NET_Q3_tr = NET_Q3/networking_sum*10,
+         NET_Q4_tr = NET_Q4/networking_sum*10) |> 
+  mutate(NET_Q1_log = log10(NET_Q1_tr), 
+         NET_Q2_log = log10(NET_Q2_tr), 
+         NET_Q3_log = log10(NET_Q3_tr),
+         NET_Q4_log = log10(NET_Q4_tr)) |> 
+  mutate(effectuation_sum = sum(c(ME_Q1, ME_Q2, ME_Q3, ME_Q4)),
+         ME_Q1_tr = ME_Q1/effectuation_sum*10, 
+         ME_Q2_tr = ME_Q2/effectuation_sum*10, 
+         ME_Q3_tr = ME_Q3/effectuation_sum*10,
+         ME_Q4_tr = ME_Q4/effectuation_sum*10) |> 
+  mutate(ME_Q1_log = log10(ME_Q1_tr), 
+         ME_Q2_log = log10(ME_Q2_tr), 
+         ME_Q3_log = log10(ME_Q3_tr),
+         ME_Q4_log = log10(ME_Q4_tr)) |> 
+  mutate(social_network_sum = sum(constraint, clustering, density),
+         constraint_tr = constraint/social_network_sum,
+         clustering_tr = clustering/social_network_sum,
+         density_tr = density/social_network_sum) |> 
+  mutate(constraint_log = log10(constraint_tr),
+         density_log = log10(density_tr),
+         clustering_sqrt = sqrt(clustering_tr))
+
+data_vivi_center_networking_6 <- 
+  center_colmeans(data_vivi_tr_6 |> 
+                    select(NET_Q1_log, 
+                           NET_Q2_log, 
+                           NET_Q3_log , 
+                           NET_Q4_log)) 
+
+data_vivi_autscale_networking_6 <- 
+  center_colstd.dev(data_vivi_center_networking_6)
+
+data_vivi_center_effectuation_6 <- 
+  center_colmeans(data_vivi_tr_6 |> 
+                    select(ME_Q1_log, 
+                           ME_Q2_log, 
+                           ME_Q3_log , 
+                           ME_Q4_log)) 
+
+data_vivi_autscale_effectuation_6 <- 
+  center_colstd.dev(data_vivi_center_effectuation_6)
+
+data_vivi_center_social_network_6 <- 
+  center_colmeans(data_vivi_tr_6 |> 
+                    select(constraint_log, 
+                           density_log, 
+                           clustering_sqrt)) 
+
+data_vivi_autscale_social_network_6 <- 
+  center_colstd.dev(data_vivi_center_social_network_6)
+
+data_vivi_autscale_total_6 <- 
+  data_vivi_autscale_networking_6 |> 
+  bind_cols(data_vivi_center_effectuation_6, 
+            data_vivi_autscale_social_network_6, 
+            data_vivi |> 
+              select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, ME_Q1, ME_Q2, ME_Q3, ME_Q4, 
+                     constraint, clustering, density))
+
+# constraint_t <- 
+#   bestNormalize(data_vivi_autscale_total$constraint)$x.t |> 
+#   tibble() |> 
+#   rename("constraint_t" = 1) 
+# 
+# data_vivi_final <- 
+#   data_vivi_autscale_total |> 
+#   bind_cols(constraint_t)
+```
+
+
+Without outliers 
+
+```{r}
+data_vivi_autscale_total_6_outliers <- 
+  data_vivi_autscale_total_6 |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-networking_l1, -networking_l2, -anomaly) |> 
+  mutate(social_network = mean(constraint_log, density_log, clustering_sqrt)) |>
+  anomalize(social_network, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes")
+```
+
+
+Model
+
+```{r}
+model_sem_data_6 <- 
+  matrix(c(
+    "NET", "NET_Q1_log", 
+    "NET", "NET_Q2_log", 
+    "NET", "NET_Q3_log", 
+    "NET", "NET_Q4_log",
+    "ER", "constraint"
+    # "ER", "density"
+    # "ER", "clustering"
+  ),
+  ncol = 2, byrow = TRUE
+  )
+
+model_pls_6 <- 
+  matrix(c(
+    "NET", "ER"),
+    ncol = 2, byrow = TRUE
+  )
+
+
+PLS_model_6 <- 
+  plsm(data = as.data.frame(data_vivi_autscale_total_6_outliers), 
+       strucmod = model_pls_6, 
+       measuremod = model_sem_data_6)
+
+```
+
+```{r}
+PLS_fit_6 <- 
+  sempls(model = PLS_model_6, 
+         data = as.data.frame(data_vivi_autscale_total_6_outliers))
+```
+
+```{r}
+plsLoadings(PLS_fit_6) 
+```
+
+```{r}
+pathCoeff(PLS_fit_6)
+```
+
+Evaluando el modelo PLS-SEM
+
+Como los modelos de PLS-SEM no evaluan el ajuste del modelo en general, se mostrará dos métodos por los cuales se puede entender su comportamiento.
+
+Revisando los valores de R2
+
+```{r}
+rSquared(PLS_fit_6)
+```
+
+Haciendo un bootstrapping
+
+```{r}
+set.seed(04460)
+PLS_boot <- 
+  bootsempls(PLS_fit_6, 
+             nboot = 500, 
+             start = "ones")
+```
+
+```{r}
+parallelplot(PLS_boot, 
+             reflinesAt = 0, 
+             alpha = 0.8, 
+             varnames = attr(PLS_boot$t, "path")[7], 
+             main = "Caminos de coeficientes in 500 PLS bostrap interacciones(N = 112)")
+```
+
 # Try 5
 
 ```{r}
 data_vivi <- 
   read.csv(here("data", "jrme_data_all_1.csv")) |> 
-  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, ME_Q1, ME_Q2, ME_Q3, ME_Q4, constraint)
+  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, ME_Q1, ME_Q2, ME_Q3, ME_Q4, 
+         constraint, clustering, density)
 ```
 
 
@@ -71,8 +253,15 @@ data_vivi_tr <-
   mutate(ME_Q1_log = log10(ME_Q1_tr), 
          ME_Q2_log = log10(ME_Q2_tr), 
          ME_Q3_log = log10(ME_Q3_tr),
-         ME_Q4_log = log10(ME_Q4_tr)) 
-  
+         ME_Q4_log = log10(ME_Q4_tr)) |> 
+  mutate(social_network_sum = sum(constraint, clustering, density),
+         constraint_tr = constraint/social_network_sum,
+         clustering_tr = clustering/social_network_sum,
+         density_tr = density/social_network_sum) |> 
+  mutate(constraint_log = log10(constraint_tr),
+         density_log = log10(density_tr),
+         clustering_log = sqrt(clustering_tr))
+
 data_vivi_center_networking <- 
   center_colmeans(data_vivi_tr |> 
                     select(NET_Q1_log, 
@@ -93,11 +282,19 @@ data_vivi_center_effectuation <-
 data_vivi_autscale_effectuation <- 
   center_colstd.dev(data_vivi_center_effectuation)
 
+data_vivi_center_social_network <- 
+  center_colmeans(data_vivi_tr |> 
+                    select(constraint_log, 
+                           density_log, 
+                           clustering_log)) 
+
+data_vivi_autscale_social_network <- 
+  center_colstd.dev(data_vivi_center_social_network)
+
 data_vivi_autscale_total <- 
   data_vivi_autscale_networking |> 
   bind_cols(data_vivi_center_effectuation, 
-            data_vivi |> 
-              select(constraint))
+            data_vivi_autscale_social_network)
 
 constraint_t <- 
   bestNormalize(data_vivi_autscale_total$constraint)$x.t |> 
@@ -171,7 +368,7 @@ data_jrme_mod_5 |>
   rowwise() |> 
   mutate(networking = mean(NET_Q1_log, NET_Q2_log, NET_Q3_log, NET_Q4_log)) |> 
   ggplot(aes(x = networking)) +
-    geom_histogram() 
+  geom_histogram() 
 ```
 Detecting anomalies
 
@@ -461,7 +658,7 @@ data_tidied_2 <-
                                         NET_Q2_tr_sc, 
                                         NET_Q3_tr_sc, 
                                         NET_Q4_tr_sc))) 
-  
+
 data_tidied_2 |> 
   anomalize(NET_Q1, method = "gesd") |> # just 4 and the rest no-one. 
   filter(anomaly == "No") |> 
