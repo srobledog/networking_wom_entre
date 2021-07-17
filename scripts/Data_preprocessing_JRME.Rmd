@@ -219,6 +219,8 @@ Como el pensamiento effectual es una variable formativa, no es necesario que se 
 
 ### 2. Estructura de la red
 
+#### Option 1
+
 Para la primera pregunta acerca de la ego-network, creamos las conexiones entre los clientes y hallamos los indicadores de constraint e intermediación.
 
 ```{r}
@@ -315,6 +317,94 @@ Se transforman los datos para que se acerquen a una distribución normal
 df_egonet$constraint_nor <- autoTransform(df_egonet$constraint)
 df_egonet$constraint_sc <- scale(df_egonet$constraint)
 ```
+
+#### Option 2
+
+```{r}
+
+df_egonet <- data.frame(email = character(),
+                        constraint = numeric(),
+                        clustering = numeric(),
+                        stringsAsFactors = FALSE)
+
+for (i in data_raw_5$email) {
+  
+  row = data_raw_5[data_raw_5$email == i, c("email",
+                                            "RED_Q2_C1",
+                                            "RED_Q2_C2",
+                                            "RED_Q2_C3",
+                                            "RED_Q2_C4",
+                                            "RED_Q2_C5")]
+  
+  df_c1 = data.frame(Source = "Cliente 1",
+                     Target = strsplit(x = row$RED_Q2_C1, 
+                                       split = ";"),
+                     stringsAsFactors = FALSE)
+  
+  names(df_c1) = c("Source", "Target")
+  
+  df_c2 = data.frame(Source = "Cliente 2",
+                     Target = strsplit(x = row$RED_Q2_C2, 
+                                       split = ";"),
+                     stringsAsFactors = FALSE)
+  
+  names(df_c2) = c("Source", "Target")
+  
+  df_c3 = data.frame(Source = "Cliente 3",
+                     Target = strsplit(x = row$RED_Q2_C3, 
+                                       split = ";"),
+                     stringsAsFactors = FALSE)
+  
+  names(df_c3) = c("Source", "Target")
+  
+  df_c4 = data.frame(Source = "Cliente 4",
+                     Target = strsplit(x = row$RED_Q2_C4, 
+                                       split = ";"),
+                     stringsAsFactors = FALSE)
+  
+  names(df_c4) = c("Source", "Target")
+  
+  df_c5 = data.frame(Source = "Cliente 5",
+                     Target = strsplit(x = row$RED_Q2_C5, 
+                                       split = ";"),
+                     stringsAsFactors = FALSE)
+  
+  names(df_c5) = c("Source", "Target")
+  
+  edge_list = 
+    rbind(df_c1, df_c2, df_c3, df_c4, df_c5) |> 
+    na.omit()
+  
+  df_entre = 
+    data.frame(Source = i,
+               Target = c("Cliente 1",
+                          "Cliente 2",
+                          "Cliente 3",
+                          "Cliente 4",
+                          "Cliente 5")) |> 
+    bind_rows(edge_list)
+  
+  graph_1 = 
+    graph.data.frame(df_entre, 
+                     directed = FALSE) |> 
+    simplify()
+  
+  net_metrics = data.frame(email = i,
+                           constraint = constraint(graph_1)[1],
+                           clustering = transitivity(graph_1,
+                                                     type = "local")[1],
+                           centrality = eigen_centrality(graph_1,
+                                                         directed = FALSE)$vector[1],
+                           density = edge_density(graph_1),
+                           stringsAsFactors = FALSE)
+  
+  df_egonet = rbind(net_metrics, df_egonet)
+}
+
+rm(row, df_c1, df_c2, df_c3, df_c4, df_c5, df_entre)
+```
+
+In this part, we'll remove the egonetwork. 
 
 ### 3. Actividades de networking: limpieza y organización.
 

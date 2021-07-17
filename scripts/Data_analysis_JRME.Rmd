@@ -153,10 +153,10 @@ model_sem_data_6 <-
   matrix(c(
     "NET", "NET_Q1_log", 
     "NET", "NET_Q2_log", 
-    "NET", "NET_Q3_log", 
-    "NET", "NET_Q4_log",
-    "ER", "constraint"
-    # "ER", "density"
+    # "NET", "NET_Q3_log", 
+    # "NET", "NET_Q4_log",
+    "ER", "constraint_log",
+    "ER", "density_log"
     # "ER", "clustering"
   ),
   ncol = 2, byrow = TRUE
