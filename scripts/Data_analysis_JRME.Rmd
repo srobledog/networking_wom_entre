@@ -40,7 +40,114 @@ data_jrme <-
   mutate(Net_Str = constraint_sc)
 ```
 
-# Try 6 
+# Try 7
+
+```{r}
+data_vivi <- 
+  read.csv(here("data", "jrme_data_all_1.csv")) |> 
+  select(NET_Q1, NET_Q2, NET_Q3, NET_Q4, ME_Q1, ME_Q2, ME_Q3, ME_Q4, 
+         constraint, clustering, density)
+```
+
+```{r}
+data_vivi_autscale_total_7 <- 
+  data_vivi_autscale_total_6 |> 
+  bind_cols(df_egonet |> select(edges)) |> 
+  rowwise() |> 
+  mutate(social_network_sum = sum(constraint, density, edges),
+         constraint_tr = constraint/social_network_sum,
+         edges_tr = edges/social_network_sum,
+         density_tr = density/social_network_sum) |> 
+  mutate(constraint_log = log10(constraint_tr),
+         density_log = log10(density_tr),
+         edges_tr_sqrt = sqrt(edges_tr))
+
+data_vivi_center_social_network_7 <- 
+  center_colmeans(data_vivi_autscale_total_7 |> 
+                    select(constraint_log, 
+                           density_log, 
+                           edges_tr_sqrt)) 
+
+data_vivi_autscale_social_network_7 <- 
+  center_colstd.dev(data_vivi_center_social_network_7) |> 
+  rename("constraint_log_1" = constraint_log, 
+         "density_log_1" = density_log,
+         "edges_tr_sqrt_1" = edges_tr_sqrt)
+
+data_vivi_autscale_total_7_1 <- 
+  data_vivi_autscale_total_7 |> 
+  bind_cols(data_vivi_autscale_social_network_7) |> 
+  rowwise() |> 
+  mutate(social_network = mean(constraint_log_1, 
+                               density_log_1,
+                               edges_tr_sqrt_1),
+         networking = mean(NET_Q1_log,
+                           NET_Q2_log,
+                           NET_Q3_log,
+                           NET_Q4_log))
+
+data_vivi_autscale_total_7_outliers <- 
+  data_vivi_autscale_total_7_1 |>
+  dplyr::filter(edges != 15) |> 
+  rowwise() |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-networking_l1, -networking_l2, -anomaly) |> 
+  anomalize(social_network, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes")
+```
+
+Model
+
+```{r}
+model_sem_data_7 <- 
+  matrix(c(
+    "NET", "NET_Q1_log", 
+    "NET", "NET_Q2_log", 
+    #"NET", "NET_Q3_log", 
+    #"NET", "NET_Q4_log",
+    "ER", "constraint_log_1",
+    "ER", "density_log_1"
+    #"ER", "edges_tr_sqrt_1"
+    # "ER", "clustering"
+  ),
+  ncol = 2, byrow = TRUE
+  )
+
+model_pls_7 <- 
+  matrix(c(
+    "NET", "ER"),
+    ncol = 2, byrow = TRUE
+  )
+
+
+PLS_model_7 <- 
+  plsm(data = as.data.frame(data_vivi_autscale_total_7_outliers), 
+       strucmod = model_pls_7, 
+       measuremod = model_sem_data_7)
+
+```
+
+```{r}
+PLS_fit_7 <- 
+  sempls(model = PLS_model_7, 
+         data = as.data.frame(data_vivi_autscale_total_7_outliers))
+```
+
+```{r}
+plsLoadings(PLS_fit_7) 
+```
+
+```{r}
+pathCoeff(PLS_fit_7)
+```
+
+
+```{r}
+rSquared(PLS_fit_7)
+```
+
+#Try 6 
 
 data
 
@@ -153,9 +260,9 @@ model_sem_data_6 <-
   matrix(c(
     "NET", "NET_Q1_log", 
     "NET", "NET_Q2_log", 
-    # "NET", "NET_Q3_log", 
-    # "NET", "NET_Q4_log",
-    "ER", "constraint_log",
+    "NET", "NET_Q3_log", 
+    "NET", "NET_Q4_log",
+    # "ER", "constraint_log",
     "ER", "density_log"
     # "ER", "clustering"
   ),

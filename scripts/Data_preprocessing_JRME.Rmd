@@ -299,6 +299,7 @@ for (i in data_raw_5$email) {
                            centrality = eigen_centrality(graph_1,
                                                          directed = FALSE)$vector[1],
                            density = edge_density(graph_1),
+                           edges = gsize(graph_1),
                            stringsAsFactors = FALSE)
   
   df_egonet = rbind(net_metrics, df_egonet)
@@ -375,17 +376,8 @@ for (i in data_raw_5$email) {
     rbind(df_c1, df_c2, df_c3, df_c4, df_c5) |> 
     na.omit()
   
-  df_entre = 
-    data.frame(Source = i,
-               Target = c("Cliente 1",
-                          "Cliente 2",
-                          "Cliente 3",
-                          "Cliente 4",
-                          "Cliente 5")) |> 
-    bind_rows(edge_list)
-  
   graph_1 = 
-    graph.data.frame(df_entre, 
+    graph.data.frame(edge_list, 
                      directed = FALSE) |> 
     simplify()
   
@@ -396,12 +388,13 @@ for (i in data_raw_5$email) {
                            centrality = eigen_centrality(graph_1,
                                                          directed = FALSE)$vector[1],
                            density = edge_density(graph_1),
+                           edges = gsize(graph_1),
                            stringsAsFactors = FALSE)
   
   df_egonet = rbind(net_metrics, df_egonet)
 }
 
-rm(row, df_c1, df_c2, df_c3, df_c4, df_c5, df_entre)
+rm(row, df_c1, df_c2, df_c3, df_c4, df_c5)
 ```
 
 In this part, we'll remove the egonetwork. 
