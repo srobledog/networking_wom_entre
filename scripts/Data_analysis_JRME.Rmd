@@ -28,6 +28,7 @@ library(gridExtra)
 library(psych)
 library(semPLS)
 library(gt)
+library(parameters)
 source(here("scripts", "functions.R"))
 ```
 
@@ -39,6 +40,175 @@ data_jrme <-
                 "jrme_data_all.csv")) |> 
   mutate(Net_Str = constraint_sc)
 ```
+
+# Try 8 
+
+We're gonna change the model... this is a different option of the reviewers but the model will fit the values. 
+
+
+```{r}
+data_vivi_autscale_total_8 <- 
+  data_raw_5 |> 
+  left_join(df_egonet |> 
+              dplyr::select(email, density)) |> 
+  rowwise() |> 
+  mutate(networking_sum = sum(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4)), # NETWORKING
+         NET_Q1_tr = NET_Q1/networking_sum*10, 
+         NET_Q2_tr = NET_Q2/networking_sum*10, 
+         NET_Q3_tr = NET_Q3/networking_sum*10,
+         NET_Q4_tr = NET_Q4/networking_sum*10) |> 
+  mutate(NET_Q1_log = log10(NET_Q1_tr), 
+         NET_Q2_log = log10(NET_Q2_tr), 
+         NET_Q3_log = log10(NET_Q3_tr),
+         NET_Q4_log = log10(NET_Q4_tr)) |> 
+  mutate(effectuation_sum = sum(c(ME_Q1, ME_Q2, ME_Q3, ME_Q4)), # EFFECTUATION
+         ME_Q1_tr = ME_Q1/effectuation_sum*10, 
+         ME_Q2_tr = ME_Q2/effectuation_sum*10, 
+         ME_Q3_tr = ME_Q3/effectuation_sum*10,
+         ME_Q4_tr = ME_Q4/effectuation_sum*10) |> 
+  mutate(ME_Q1_log = log10(ME_Q1_tr), 
+         ME_Q2_log = log10(ME_Q2_tr), 
+         ME_Q3_log = log10(ME_Q3_tr),
+         ME_Q4_log = log10(ME_Q4_tr)) |> 
+  mutate(WOM_sum = sum(c(WOM_Q1, WOM_Q2, WOM_Q3)),  # WOM
+         WOM_Q1_tr = WOM_Q1/WOM_sum*10, 
+         WOM_Q2_tr = WOM_Q2/WOM_sum*10, 
+         WOM_Q3_tr = WOM_Q3/WOM_sum*10) |> 
+  mutate(WOM_Q1_log = log10(WOM_Q1_tr), 
+         WOM_Q2_log = log10(WOM_Q2_tr), 
+         WOM_Q3_log = log10(WOM_Q3_tr)) 
+
+data_vivi_center_networking_8 <-     # NETWORKING
+  center_colmeans(data_vivi_autscale_total_8 |> 
+                    select(NET_Q1_log, 
+                           NET_Q2_log, 
+                           NET_Q3_log , 
+                           NET_Q4_log))  |> 
+  rename("NET_Q1_trans" = NET_Q1_log,
+         "NET_Q2_trans" = NET_Q2_log,
+         "NET_Q3_trans" = NET_Q3_log,
+         "NET_Q4_trans" = NET_Q4_log)
+
+data_vivi_autscale_networking_8 <- 
+  center_colstd.dev(data_vivi_center_networking_8)
+
+data_vivi_center_effectuation_8 <-   # EFFECTUTION
+  center_colmeans(data_vivi_autscale_total_8 |> 
+                    select(ME_Q1_log, 
+                           ME_Q2_log, 
+                           ME_Q3_log , 
+                           ME_Q4_log)) 
+
+data_vivi_autscale_effectuation_8 <- 
+  center_colstd.dev(data_vivi_center_effectuation_8) |> 
+  rename("ME_Q1_trans" = ME_Q1_log,
+         "ME_Q2_trans" = ME_Q2_log,
+         "ME_Q3_trans" = ME_Q3_log,
+         "ME_Q4_trans" = ME_Q4_log)
+
+data_vivi_center_WOM_8 <-   # WOM
+  center_colmeans(data_vivi_autscale_total_8 |> 
+                    select(WOM_Q1_log, 
+                           WOM_Q2_log, 
+                           WOM_Q3_log )) 
+
+data_vivi_autscale_WOM_8 <- 
+  center_colstd.dev(data_vivi_center_WOM_8) |> 
+  rename("WOM_Q1_trans" = WOM_Q1_log,
+         "WOM_Q2_trans" = WOM_Q2_log,
+         "WOM_Q3_trans" = WOM_Q3_log)
+
+data_vivi_autscale_total_8_1 <- # ME_Q3_trans missing!!!!
+  data_vivi_autscale_total_8 |> 
+  bind_cols(data_vivi_autscale_networking_8,
+            data_vivi_autscale_effectuation_8,
+            data_vivi_autscale_WOM_8) |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, 
+                           NET_Q2_log, 
+                           NET_Q3_log , 
+                           NET_Q4_log),
+         effectuation = mean(ME_Q1_log, 
+                             ME_Q2_log, 
+                             ME_Q3_log , 
+                             ME_Q4_log),
+         word_of_mouth = mean(WOM_Q1_log, 
+                              WOM_Q1_log, 
+                              WOM_Q3_log))
+
+data_vivi_autscale_total_8_outliers <- 
+  data_vivi_autscale_total_8_1 |>
+  rowwise() |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-networking_l1, -networking_l2, -anomaly) |> 
+  anomalize(effectuation, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-effectuation_l1, -effectuation_l2, -anomaly) |> 
+  anomalize(word_of_mouth, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-word_of_mouth_l1, -word_of_mouth_l2, -anomaly)
+```
+
+Model
+
+```{r}
+model_sem_data_8 <- 
+  matrix(c(
+    "NET", "NET_Q1", 
+    "NET", "NET_Q2", 
+    "NET", "NET_Q3", 
+    "NET", "NET_Q4",
+    "ME", "ME_Q1",
+    "ME", "ME_Q2",
+    "ME", "ME_Q3",
+    "ME", "ME_Q4",
+    #"ER", "constraint_log_1",
+    "ER", "density",
+    #"ER", "edges_tr_sqrt_1"
+    # "ER", "clustering",
+    "WOM", "WOM_Q1", 
+    "WOM", "WOM_Q2", 
+    "WOM", "WOM_Q3"
+  ),
+  ncol = 2, byrow = TRUE
+  )
+
+model_pls_8 <- 
+  matrix(c(
+    "NET", "WOM",
+    "NET", "ER",
+    "ME", "NET"),
+    ncol = 2, byrow = TRUE
+  )
+
+PLS_model_8 <- 
+  plsm(data = as.data.frame(data_vivi_autscale_total_8_outliers), 
+       strucmod = model_pls_8, 
+       measuremod = model_sem_data_8)
+
+```
+
+```{r}
+PLS_fit_8 <- 
+  sempls(model = PLS_model_8, 
+         data = as.data.frame(data_vivi_autscale_total_8_outliers))
+```
+
+```{r}
+plsLoadings(PLS_fit_8) 
+```
+
+```{r}
+pathCoeff(PLS_fit_8)
+```
+
+
+```{r}
+rSquared(PLS_fit_8)
+```
+
+
 
 # Try 7
 
