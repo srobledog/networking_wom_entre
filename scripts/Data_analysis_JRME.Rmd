@@ -118,7 +118,7 @@ data_vivi_autscale_WOM_8 <-
          "WOM_Q2_trans" = WOM_Q2_log,
          "WOM_Q3_trans" = WOM_Q3_log)
 
-data_vivi_autscale_total_8_1 <- # ME_Q3_trans missing!!!!
+data_vivi_autscale_total_8_1 <- 
   data_vivi_autscale_total_8 |> 
   bind_cols(data_vivi_autscale_networking_8,
             data_vivi_autscale_effectuation_8,
@@ -150,63 +150,89 @@ data_vivi_autscale_total_8_outliers <-
   select(-word_of_mouth_l1, -word_of_mouth_l2, -anomaly)
 ```
 
+Moderated effect 
+
+```{r}
+data_vivi_autscale_total_8_outliers_mod_effect <- 
+  semTools::indProd(data_vivi_autscale_total_8_outliers,
+                    var1 = c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4"),
+                    var2 = c("ME_Q2", "ME_Q3", "ME_Q4"),
+                    match = FALSE,
+                    meanC = TRUE,
+                    residualC = FALSE,
+                    doubleMC = TRUE)
+```
+
+
 Model
 
 ```{r}
-model_sem_data_8 <- 
-  matrix(c(
-    "NET", "NET_Q1", 
-    "NET", "NET_Q2", 
-    "NET", "NET_Q3", 
-    "NET", "NET_Q4",
-    "ME", "ME_Q1",
-    "ME", "ME_Q2",
-    "ME", "ME_Q3",
-    "ME", "ME_Q4",
-    #"ER", "constraint_log_1",
-    "ER", "density",
-    #"ER", "edges_tr_sqrt_1"
-    # "ER", "clustering",
-    "WOM", "WOM_Q1", 
-    "WOM", "WOM_Q2", 
-    "WOM", "WOM_Q3"
-  ),
-  ncol = 2, byrow = TRUE
-  )
-
-model_pls_8 <- 
-  matrix(c(
-    "NET", "WOM",
-    "NET", "ER",
-    "ME", "NET"),
-    ncol = 2, byrow = TRUE
-  )
-
-PLS_model_8 <- 
-  plsm(data = as.data.frame(data_vivi_autscale_total_8_outliers), 
-       strucmod = model_pls_8, 
-       measuremod = model_sem_data_8)
+Model_8 <- "# Measurement model
+            Networking =~ NET_Q1 + NET_Q2 + NET_Q4
+            WOM   =~ WOM_Q1 + WOM_Q2 + WOM_Q3
+            Effectuation =~ ME_Q2 + ME_Q3 + ME_Q4
+            # Moderate effect
+            networkingeffectuation =~ NET_Q1.ME_Q2 + NET_Q1.ME_Q3 + NET_Q1.ME_Q4 +
+                                      NET_Q2.ME_Q2 + NET_Q2.ME_Q3 + NET_Q2.ME_Q4 +
+                                      NET_Q3.ME_Q2 + NET_Q3.ME_Q3 + NET_Q3.ME_Q4 +
+                                      NET_Q4.ME_Q2 + NET_Q4.ME_Q3 + NET_Q4.ME_Q4
+            Net_Str =~ density
+            # Regressions
+            Net_Str ~ Networking 
+            WOM ~ Networking + Effectuation + networkingeffectuation
+            # Residual Correlations
+            ME_Q2 ~~ WOM_Q1
+            ME_Q3 ~~ WOM_Q2
+            ME_Q4 ~~ WOM_Q3"
 
 ```
 
 ```{r}
-PLS_fit_8 <- 
-  sempls(model = PLS_model_8, 
-         data = as.data.frame(data_vivi_autscale_total_8_outliers))
+model_8_fit <- 
+  lavaan::cfa(Model_8, 
+              data = data_vivi_autscale_total_8_outliers_mod_effect)
+```
+
+Inspecting the factor loading for each item
+
+```{r}
+inspect(model_8_fit, what = "std")$lambda
+```
+
+Visualizing the results
+
+```{r}
+summary(model_8_fit, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
 ```
 
 ```{r}
-plsLoadings(PLS_fit_8) 
+fitMeasures(model_8_fit)
 ```
 
 ```{r}
-pathCoeff(PLS_fit_8)
+semTools::reliability(model_8_fit)
 ```
-
 
 ```{r}
-rSquared(PLS_fit_8)
+modificationindices(model_8_fit, sort. = TRUE)
 ```
+
+Table 
+
+```{r}
+parameterestimates(model_8_fit,
+                   standardized = TRUE) |> 
+  filter(op == "~") |> 
+  mutate(stars = ifelse(pvalue < 0.001, "***",
+                        ifelse(pvalue < 0.01, "**",
+                               ifelse(pvalue < 0.05, "*", "")))) |> 
+  select(LHS = lhs, RHS = rhs, Coefficient = est, 
+         Z = z, "p-value" = pvalue, Sig. = stars) |> 
+  stargazer(type = "text", title = "Regression Coefficients", 
+            summary = FALSE, digits = 3, 
+            digits.extra = 0, rownames = FALSE)
+```
+
 
 
 
