@@ -41,6 +41,70 @@ data_jrme <-
   mutate(Net_Str = constraint_sc)
 ```
 
+# Try 9
+
+```{r}
+data_vivi_autscale_total_9_outliers <-  
+  data_vivi_autscale_total_8_outliers 
+```
+
+Moderated effect 
+
+```{r}
+data_vivi_autscale_total_9_outliers_mod_effect <- 
+  semTools::indProd(data_vivi_autscale_total_9_outliers,
+                    var1 = c("NET_Q1", "NET_Q2", "NET_Q3", "NET_Q4"),
+                    var2 = c("ME_Q2", "ME_Q3", "ME_Q4"),
+                    match = FALSE,
+                    meanC = TRUE,
+                    residualC = FALSE,
+                    doubleMC = TRUE)
+```
+
+
+Model
+
+```{r}
+Model_9 <- "# Measurement model
+            Networking =~ NET_Q1 + NET_Q2 + NET_Q4
+            WOM   =~ WOM_Q1 + WOM_Q2 + WOM_Q3
+            Effectuation =~ ME_Q2 + ME_Q3 + ME_Q4
+            Net_Str =~ density
+            # Moderate effect
+            networkingeffectuation =~ NET_Q1.ME_Q2 + NET_Q1.ME_Q3 + NET_Q1.ME_Q4 +
+                                      NET_Q2.ME_Q2 + NET_Q2.ME_Q3 + NET_Q2.ME_Q4 +
+                                      NET_Q3.ME_Q2 + NET_Q3.ME_Q3 + NET_Q3.ME_Q4 +
+                                      NET_Q4.ME_Q2 + NET_Q4.ME_Q3 + NET_Q4.ME_Q4
+            # Regressions
+            Net_Str ~ Networking 
+            WOM ~ Networking + Effectuation + networkingeffectuation"
+
+```
+
+```{r}
+model_9_fit <- 
+  lavaan::cfa(Model_9, 
+              data = data_vivi_autscale_total_9_outliers_mod_effect)
+```
+
+Inspecting the factor loading for each item
+
+```{r}
+inspect(model_9_fit, what = "std")$lambda
+```
+
+Visualizing the results
+
+```{r}
+summary(model_8_fit, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+```
+
+```{r}
+fitMeasures(model_8_fit)
+```
+
+
+
 # Try 8 
 
 We're gonna change the model... this is a different option of the reviewers but the model will fit the values. 
