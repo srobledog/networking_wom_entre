@@ -41,7 +41,187 @@ data_jrme <-
   mutate(Net_Str = constraint_sc)
 ```
 
+# Try 11
+
+```{r}
+
+```
+
+# Try 10
+
+```{r}
+data_vivi_autscale_total_10_outliers <-  
+  data_vivi_autscale_total_9_outliers 
+```
+
+Model
+
+```{r}
+Model_10 <- "# Measurement model
+            Networking =~ NET_Q1 + NET_Q2 + NET_Q4
+            WOM   =~ WOM_Q1 + WOM_Q2 + WOM_Q3
+            Effectuation <~ ME_Q2 + ME_Q3 + ME_Q4
+            # Regressions
+            Networking ~ Effectuation
+            WOM ~ Networking
+            "
+```
+
+```{r}
+model_10_fit <- 
+  lavaan::cfa(Model_10, 
+              data = data_vivi_autscale_total_10_outliers)
+```
+
+Inspecting the factor loading for each item
+
+```{r}
+inspect(model_10_fit, what = "std")$lambda
+```
+
+Visualizing the results
+
+```{r}
+summary(model_10_fit, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+```
+
+```{r}
+fitMeasures(model_10_fit)
+```
+
+
+```{r}
+semTools::reliability(model_10_fit)
+```
+
+```{r}
+modificationindices(model_10_fit, sort. = TRUE)
+```
+
+
 # Try 9
+
+```{r}
+data_vivi_autscale_total_9_vero <- 
+  data_raw_5 |> 
+  left_join(df_egonet |> 
+              dplyr::select(email, constraint, density, clustering)) |> 
+  rowwise() |> 
+  mutate(networking_sum = sum(c(NET_Q1, NET_Q2, NET_Q3, NET_Q4)), # NETWORKING
+         NET_Q1_tr = NET_Q1/networking_sum*10, 
+         NET_Q2_tr = NET_Q2/networking_sum*10, 
+         NET_Q3_tr = NET_Q3/networking_sum*10,
+         NET_Q4_tr = NET_Q4/networking_sum*10) |> 
+  mutate(NET_Q1_log = log10(NET_Q1_tr), 
+         NET_Q2_log = log10(NET_Q2_tr), 
+         NET_Q3_log = log10(NET_Q3_tr),
+         NET_Q4_log = log10(NET_Q4_tr)) |> 
+  mutate(effectuation_sum = sum(c(ME_Q1, ME_Q2, ME_Q3, ME_Q4)), # EFFECTUATION
+         ME_Q1_tr = ME_Q1/effectuation_sum*10, 
+         ME_Q2_tr = ME_Q2/effectuation_sum*10, 
+         ME_Q3_tr = ME_Q3/effectuation_sum*10,
+         ME_Q4_tr = ME_Q4/effectuation_sum*10) |> 
+  mutate(ME_Q1_log = log10(ME_Q1_tr), 
+         ME_Q2_log = log10(ME_Q2_tr), 
+         ME_Q3_log = log10(ME_Q3_tr),
+         ME_Q4_log = log10(ME_Q4_tr)) |> 
+  mutate(WOM_sum = sum(c(WOM_Q1, WOM_Q2, WOM_Q3)),  # WOM
+         WOM_Q1_tr = WOM_Q1/WOM_sum*10, 
+         WOM_Q2_tr = WOM_Q2/WOM_sum*10, 
+         WOM_Q3_tr = WOM_Q3/WOM_sum*10) |> 
+  mutate(WOM_Q1_log = log10(WOM_Q1_tr), 
+         WOM_Q2_log = log10(WOM_Q2_tr), 
+         WOM_Q3_log = log10(WOM_Q3_tr)) 
+
+data_vivi_center_networking_9_vero <-     # NETWORKING
+  center_colmeans(data_vivi_autscale_total_9_vero |> 
+                    select(NET_Q1_log, 
+                           NET_Q2_log, 
+                           NET_Q3_log , 
+                           NET_Q4_log))  |> 
+  rename("NET_Q1_trans" = NET_Q1_log,
+         "NET_Q2_trans" = NET_Q2_log,
+         "NET_Q3_trans" = NET_Q3_log,
+         "NET_Q4_trans" = NET_Q4_log)
+
+data_vivi_autscale_networking_9_vero <- 
+  center_colstd.dev(data_vivi_center_networking_9_vero)
+
+data_vivi_center_effectuation_9_vero <-   # EFFECTUTION
+  center_colmeans(data_vivi_autscale_total_9_vero |> 
+                    select(ME_Q1_log, 
+                           ME_Q2_log, 
+                           ME_Q3_log , 
+                           ME_Q4_log)) 
+
+data_vivi_autscale_effectuation_9_vero <- 
+  center_colstd.dev(data_vivi_center_effectuation_9_vero) |> 
+  rename("ME_Q1_trans" = ME_Q1_log,
+         "ME_Q2_trans" = ME_Q2_log,
+         "ME_Q3_trans" = ME_Q3_log,
+         "ME_Q4_trans" = ME_Q4_log)
+
+data_vivi_center_WOM_9_vero <-   # WOM
+  center_colmeans(data_vivi_autscale_total_9_vero |> 
+                    select(WOM_Q1_log, 
+                           WOM_Q2_log, 
+                           WOM_Q3_log )) 
+
+data_vivi_autscale_WOM_9_vero <- 
+  center_colstd.dev(data_vivi_center_WOM_9_vero) |> 
+  rename("WOM_Q1_trans" = WOM_Q1_log,
+         "WOM_Q2_trans" = WOM_Q2_log,
+         "WOM_Q3_trans" = WOM_Q3_log)
+
+data_vivi_autscale_total_9_vero <- 
+  data_vivi_autscale_total_9_vero |> 
+  bind_cols(data_vivi_autscale_networking_9_vero,
+            data_vivi_autscale_effectuation_9_vero,
+            data_vivi_autscale_WOM_9_vero) |> 
+  rowwise() |> 
+  mutate(networking = mean(NET_Q1_log, 
+                           NET_Q2_log, 
+                           NET_Q3_log , 
+                           NET_Q4_log),
+         effectuation = mean(ME_Q1_log, 
+                             ME_Q2_log, 
+                             ME_Q3_log , 
+                             ME_Q4_log),
+         word_of_mouth = mean(WOM_Q1_log, 
+                              WOM_Q1_log, 
+                              WOM_Q3_log))
+
+data_vivi_autscale_total_9_vero_outliers <- 
+  data_vivi_autscale_total_9_vero |>
+  rowwise() |> 
+  anomalize(networking, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-networking_l1, -networking_l2, -anomaly) |> 
+  anomalize(effectuation, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-effectuation_l1, -effectuation_l2, -anomaly) |> 
+  anomalize(word_of_mouth, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-word_of_mouth_l1, -word_of_mouth_l2, -anomaly) |> 
+  anomalize(constraint, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-constraint_l1, -constraint_l2, -anomaly) |> 
+  anomalize(density, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-density_l1, -density_l2, -anomaly) |> 
+  anomalize(clustering, method = "gesd") |> 
+  dplyr::filter(anomaly != "Yes") |> 
+  select(-clustering_l1, -clustering_l2, -anomaly)
+
+datos_vero <- 
+  data_vivi_autscale_total_9_vero_outliers |> 
+  select(NET_Q1,NET_Q2,NET_Q3,NET_Q4,
+         ME_Q1, ME_Q2, ME_Q3, ME_Q4,
+         WOM_Q1, WOM_Q2, WOM_Q3,
+         constraint, density, clustering
+         )
+```
+
 
 ```{r}
 data_vivi_autscale_total_9_outliers <-  
@@ -96,7 +276,7 @@ inspect(model_9_fit, what = "std")$lambda
 Visualizing the results
 
 ```{r}
-summary(model_8_fit, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+summary(model_9_fit, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
 ```
 
 ```{r}
